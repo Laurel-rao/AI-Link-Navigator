@@ -2,6 +2,11 @@
 Vercel存储模块
 提供与Vercel Edge Config交互的函数，用于替代Firebase实时数据库
 使用Vercel的原生存储服务，避免Firebase凭据问题和只读文件系统限制
+
+版本: 1.0.1
+更新日期: 2025-05-19
+说明: 此模块使用Vercel Edge Config API存储和检索用户数据和链接数据
+      当Edge Config不可用时会自动回退到本地文件存储
 """
 
 import os
@@ -9,6 +14,7 @@ import json
 import traceback
 from werkzeug.security import generate_password_hash
 import requests
+
 
 # Vercel Edge Config配置
 EDGE_CONFIG_ID = os.environ.get('EDGE_CONFIG_ID')
