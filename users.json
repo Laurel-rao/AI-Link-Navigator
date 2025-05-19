@@ -1,0 +1,12 @@
+[
+  {
+    "username": "admin",
+    "_password_plaintext_initial": "A123456",
+    "role": "admin"
+  },
+  {
+    "username": "user",
+    "_password_plaintext_initial": "U123456",
+    "role": "user"
+  }
+]
