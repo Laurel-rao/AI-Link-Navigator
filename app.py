@@ -6,8 +6,8 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import string
-from PIL import Image, ImageDraw, ImageFont # Pillow for image generation
-import io # For sending image data
+import base64 # 用于编码验证码
+import io # For sending data
 # 导入Firebase存储模块
 from firebase_storage import load_users, save_users, load_data, save_data, initialize_default_data
 
@@ -22,58 +22,36 @@ USERS_FILE = 'users.json'
 
 # --- CAPTCHA Generation ---
 def generate_captcha_image(text_length=5):
+    """生成简单的文本验证码，返回验证码文本和HTML/CSS格式的验证码"""
+    # 生成随机验证码文本
     text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=text_length))
-    try:
-        # Try to use a common system font. Adjust path if needed for your environment.
-        font_path = "/System/Library/Fonts/Supplemental/Arial.ttf" # macOS common path
-        if not os.path.exists(font_path):
-             font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" # Linux common path
-        if not os.path.exists(font_path):
-             font_path = "arial.ttf" # Windows, assuming it's in a place Windows can find
-        
-        font_size = 30
-        try:
-            font = ImageFont.truetype(font_path, font_size)
-        except IOError:
-            font = ImageFont.load_default() # Fallback to default PIL font
-            # Manually adjust size if default font is too small/large (approximate)
-            # This is tricky as default font size isn't easily controlled like truetype.
-            # For a better experience, ensure a TTF font is available and correctly pathed.
-
-    except Exception as e:
-        app.logger.error(f"Font loading error for CAPTCHA: {e}")
-        font = ImageFont.load_default()
-
-    image_width = text_length * (font_size // 2 + 10) # Approximate width
-    image_height = font_size + 20
-    image = Image.new('RGB', (image_width, image_height), color = (220, 220, 220)) # Light grey background
-    draw = ImageDraw.Draw(image)
-
-    # Draw text
-    text_bbox = draw.textbbox((0,0), text, font=font)
-    text_width = text_bbox[2] - text_bbox[0]
-    text_height = text_bbox[3] - text_bbox[1]
-    text_x = (image_width - text_width) // 2
-    text_y = (image_height - text_height) // 2 - 5 # Slight adjustment
-    draw.text((text_x, text_y), text, font=font, fill=(50, 50, 50)) # Dark grey text
-
-    # Add some noise (lines and points)
-    for _ in range(random.randint(3, 6)): # Number of lines
-        x1 = random.randint(0, image_width)
-        y1 = random.randint(0, image_height)
-        x2 = random.randint(0, image_width)
-        y2 = random.randint(0, image_height)
-        draw.line(((x1, y1), (x2, y2)), fill=(random.randint(100,200), random.randint(100,200), random.randint(100,200)), width=1)
+    app.logger.info(f"生成纯文本验证码: {text}")
     
-    for _ in range(random.randint(50, 100)): # Number of points
-        x = random.randint(0, image_width)
-        y = random.randint(0, image_height)
-        draw.point((x,y), fill=(random.randint(120,180), random.randint(120,180), random.randint(120,180)))
-
-    img_byte_arr = io.BytesIO()
-    image.save(img_byte_arr, format='PNG')
-    img_byte_arr.seek(0)
-    return text, img_byte_arr
+    # 创建简单的HTML格式验证码
+    captcha_html = f"""
+    <div style="
+        display: inline-block; 
+        padding: 10px 15px; 
+        background: linear-gradient(145deg, #e6e6e6, #f0f0f0); 
+        border-radius: 8px; 
+        font-family: monospace; 
+        font-size: 20px; 
+        font-weight: bold; 
+        letter-spacing: 5px; 
+        color: #333; 
+        text-shadow: 1px 1px 1px rgba(255,255,255,0.8); 
+        box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
+        transform: skew({random.randint(-10, 10)}deg);
+    ">
+        {text}
+    </div>
+    """
+    
+    # 使用base64编码HTML以便传输
+    captcha_data = base64.b64encode(captcha_html.encode('utf-8')).decode('utf-8')
+    
+    # 返回验证码文本和HTML格式的验证码（作为字符串）
+    return text, captcha_data
 
 # --- Decorators ---
 def login_required(f):
@@ -110,10 +88,13 @@ def serve_login_page():
 
 @app.route('/api/captcha-image')
 def serve_captcha_image():
-    captcha_text, image_data = generate_captcha_image()
+    captcha_text, captcha_html = generate_captcha_image()
     session['captcha_answer'] = captcha_text
     app.logger.info(f"Generated CAPTCHA: {captcha_text}") # Log for debugging
-    return Response(image_data, mimetype='image/png')
+    return jsonify({
+        'captcha_html': captcha_html,  # base64编码的HTML验证码
+        'type': 'html'                 # 指示前端这是HTML格式而非图片
+    })
 
 @app.route('/api/login', methods=['POST'])
 def handle_login_api():

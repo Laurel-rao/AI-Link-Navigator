@@ -22,6 +22,17 @@
             display: block; /* Remove extra space below image */
             max-height: 40px; /* Control image height */
         }
+        #captcha-html-container {
+            background-color: #4a5568; /* slate-600 */
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+            border: 1px solid #718096; /* slate-500 */
+            min-height: 50px;
+            width: calc(100% - 40px); /* 给刷新按钮留出空间 */
+        }
         #refresh-captcha-btn {
             margin-left: 0.5rem;
             background: none;
@@ -53,8 +64,15 @@
 
             <div id="captcha-section" class="mb-6 hidden">
                 <label for="captcha" class="block text-sm font-medium text-slate-300 mb-2">验证码</label>
-                <div id="captcha-image-container" class="flex items-center mb-2">
-                    <img id="captcha-image" src="" alt="验证码加载中..." title="验证码">
+                <div class="flex items-center mb-2">
+                    <!-- 图片验证码容器 -->
+                    <div id="captcha-image-container" class="flex items-center" style="display: none;">
+                        <img id="captcha-image" src="" alt="验证码加载中..." title="验证码">
+                    </div>
+                    
+                    <!-- HTML验证码容器 -->
+                    <div id="captcha-html-container"></div>
+                    
                     <button type="button" id="refresh-captcha-btn" title="刷新验证码">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566z" clip-rule="evenodd" />
@@ -77,15 +95,43 @@
     <script>
         const captchaSection = document.getElementById('captcha-section');
         const captchaImage = document.getElementById('captcha-image');
+        const captchaHtmlContainer = document.getElementById('captcha-html-container');
+        const captchaImageContainer = document.getElementById('captcha-image-container');
         const captchaInput = document.getElementById('captcha');
         const refreshCaptchaBtn = document.getElementById('refresh-captcha-btn');
 
-        function loadNewCaptcha() {
-            // Add a timestamp to prevent browser caching of the image
-            captchaImage.src = '/api/captcha-image?' + new Date().getTime();
-            captchaInput.value = ''; // Clear previous input
-            captchaSection.style.display = 'block';
-            captchaInput.focus();
+        async function loadNewCaptcha() {
+            try {
+                // Clear previous inputs
+                captchaInput.value = '';
+                captchaSection.style.display = 'block';
+                
+                // Fetch the captcha data
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/captcha-image?${timestamp}`);
+                const data = await response.json();
+                
+                // 处理不同类型的验证码
+                if (data.type === 'html') {
+                    // HTML格式验证码
+                    captchaImageContainer.style.display = 'none';
+                    captchaHtmlContainer.style.display = 'flex';
+                    
+                    // 将base64解码为HTML
+                    const decodedHtml = atob(data.captcha_html);
+                    captchaHtmlContainer.innerHTML = decodedHtml;
+                } else {
+                    // 传统图片验证码（兼容旧版本）
+                    captchaImageContainer.style.display = 'flex';
+                    captchaHtmlContainer.style.display = 'none';
+                    captchaImage.src = `/api/captcha-image?${timestamp}`;
+                }
+                
+                captchaInput.focus();
+            } catch (error) {
+                console.error('加载验证码失败:', error);
+                captchaHtmlContainer.innerHTML = '<span style="color: #f87171;">验证码加载失败</span>';
+            }
         }
 
         if (refreshCaptchaBtn) {
