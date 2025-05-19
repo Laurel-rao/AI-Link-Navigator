@@ -107,3 +107,13 @@
     - AI历史顾问 https://ai.cn/aaa7
 
 ... 等等
+
+## Vercel Edge Config集成
+
+本项目现已集成Vercel Edge Config用于数据存储，替代了Firebase。这一变更解决了以下问题：
+
+1. 避免Firebase凭据问题
+2. 解决Vercel只读文件系统限制
+3. 利用Vercel原生服务提高性能和可靠性
+
+要启用Edge Config存储功能，请参考`vercel-storage-setup.md`文件中的详细说明。
