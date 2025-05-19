@@ -14,7 +14,7 @@
   ],
   "env": {
     "VERCEL": "1",
-    "EDGE_CONFIG_ID": "@edge-config-id",
-    "EDGE_CONFIG_TOKEN": "@edge-config-token"
+    "EDGE_CONFIG_ID": "ecfg_y0mhpx9gmwwvlizof8to4c9vq7wq",
+    "EDGE_CONFIG_TOKEN": "ad637d51-483f-411d-b5d2-ef6667261af1"
   }
 } 

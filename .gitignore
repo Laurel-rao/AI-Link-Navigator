@@ -178,3 +178,4 @@ Session.sublime_session
 # Add any additional rules specific to your Python project here
 
 # ... (rest of the file remains unchanged) 
+.vercel
