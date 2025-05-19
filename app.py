@@ -8,8 +8,8 @@ import random
 import string
 import base64 # 用于编码验证码
 import io # For sending data
-# 导入Firebase存储模块
-from firebase_storage import load_users, save_users, load_data, save_data, initialize_default_data
+# 导入Vercel存储模块代替Firebase存储
+from vercel_storage import load_users, save_users, load_data, save_data, initialize_default_data
 
 app = Flask(__name__, static_folder='./')
 # 为Vercel使用固定的密钥 - 在生产环境中应该使用环境变量存储
