@@ -168,7 +168,7 @@ def serve_admin_page():
 @app.route('/data.json')
 @login_required # All logged-in users can fetch data.json for display
 def serve_data_file():
-    # 从Firebase获取数据并动态生成响应
+    # 从Vercel Edge Config获取数据并动态生成响应
     data = load_data()
     return jsonify(data)
 
@@ -180,12 +180,12 @@ def save_data_api():
         if not content or 'groups' not in content or not isinstance(content['groups'], list):
             return jsonify({'error': '无效的数据格式'}), 400
         
-        # 将数据保存到Firebase
+        # 将数据保存到Vercel Edge Config
         success = save_data(content)
         if success:
-            return jsonify({'success': True, 'message': '数据已保存'})
+            return jsonify({'success': True, 'message': '数据已保存到Vercel Edge Config'})
         else:
-            return jsonify({'error': '保存到Firebase失败'}), 500
+            return jsonify({'error': '保存数据失败，请检查Vercel Edge Config设置'}), 500
     except Exception as e:
         app.logger.error(f"Error saving data: {e}")
         return jsonify({'error': str(e)}), 500
