@@ -9,6 +9,7 @@ from firebase_config import FIREBASE_CONFIG
 import json
 import os
 import sys  # 添加sys以获取更多错误信息
+import traceback  # 添加traceback用于错误堆栈跟踪
 
 # 存储Firebase实例的全局变量，避免重复初始化
 firebase_app = None
@@ -34,39 +35,52 @@ def initialize_firebase():
         safe_config = {k: v for k, v in FIREBASE_CONFIG.items() if k not in ['apiKey', 'appId']}
         print(f"Firebase配置信息: {safe_config}")
         
-        # 使用环境变量中的凭据（安全）或配置文件（本地开发）
-        if is_vercel and os.environ.get('FIREBASE_CREDENTIALS'):
-            print("使用FIREBASE_CREDENTIALS环境变量")
+        # 检查环境变量
+        print("检查环境变量中是否有Firebase凭据...")
+        firebase_creds = os.environ.get('FIREBASE_CREDENTIALS')
+        
+        if firebase_creds:
+            print("找到FIREBASE_CREDENTIALS环境变量")
             try:
-                cred_json = os.environ.get('FIREBASE_CREDENTIALS')
                 # 打印JSON长度，帮助检查是否完整
-                print(f"凭据JSON长度: {len(cred_json)}")
-                cred_dict = json.loads(cred_json)
+                print(f"凭据JSON长度: {len(firebase_creds)}")
+                cred_dict = json.loads(firebase_creds)
                 print("成功解析凭据JSON")
                 cred = credentials.Certificate(cred_dict)
                 print("成功创建凭据证书")
             except json.JSONDecodeError as je:
                 print(f"JSON解析错误: {je}")
-                print(f"凭据开头10个字符: {cred_json[:10]}...")
+                if firebase_creds:
+                    print(f"凭据开头10个字符: {firebase_creds[:10]}...")
+                print("请确保FIREBASE_CREDENTIALS环境变量包含有效的JSON")
                 raise
         else:
-            print("使用本地服务账号文件")
-            # 本地开发：使用服务账号密钥文件
-            # 如果没有service-account.json文件，需要先从Firebase控制台下载
+            print("未找到FIREBASE_CREDENTIALS环境变量")
+            
+            # 检查是否存在服务账号文件
             if os.path.exists('service-account.json'):
                 print("找到service-account.json文件")
                 cred = credentials.Certificate('service-account.json')
                 print("成功加载服务账号密钥")
             else:
-                print("未找到服务账号文件，尝试匿名访问")
-                # 如果没有凭据文件，使用配置对象进行匿名访问
-                # 注意：这仅适用于测试/开发环境
+                # 如果在Vercel环境却没有凭据，输出警告
+                if is_vercel:
+                    print("⚠️ 在Vercel环境中运行但未找到Firebase凭据!")
+                    print("请在Vercel项目设置中添加FIREBASE_CREDENTIALS环境变量")
+                
+                print("尝试使用匿名访问（仅适用于有开放规则的数据库）")
                 print(f"数据库URL: {FIREBASE_CONFIG['databaseURL']}")
-                firebase_app = firebase_admin.initialize_app(None, {
-                    'databaseURL': FIREBASE_CONFIG['databaseURL']
-                })
-                print("成功初始化匿名Firebase应用")
-                return firebase_app
+                try:
+                    firebase_app = firebase_admin.initialize_app(None, {
+                        'databaseURL': FIREBASE_CONFIG['databaseURL']
+                    })
+                    print("成功初始化匿名Firebase应用")
+                    return firebase_app
+                except Exception as e:
+                    print(f"匿名访问失败: {e}")
+                    # 在无法访问Firebase的情况下，创建一个空应用
+                    print("无法连接Firebase，将使用本地文件存储代替")
+                    return None
         
         # 初始化应用
         print("开始初始化Firebase应用")
@@ -201,11 +215,36 @@ def save_data(content):
 def _load_users_from_file():
     """从本地文件加载用户数据（备用方法）"""
     users_file = 'users.json'
+    print(f"尝试从本地文件 {users_file} 加载用户数据")
+    
+    # 在Vercel环境中我们需要返回默认用户，因为无法从本地文件读取
+    is_vercel = os.environ.get('VERCEL') == '1'
+    if is_vercel:
+        print("在Vercel环境中，返回默认用户数据")
+        # 返回默认的硬编码用户数据
+        from werkzeug.security import generate_password_hash
+        return [
+            {
+                "username": "admin",
+                "password_hash": generate_password_hash("A123456"),
+                "role": "admin"
+            },
+            {
+                "username": "user",
+                "password_hash": generate_password_hash("U123456"),
+                "role": "user"
+            }
+        ]
+    
+    # 本地环境从文件读取
     if not os.path.exists(users_file):
+        print(f"文件 {users_file} 不存在")
         return []
     try:
         with open(users_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            data = json.load(f)
+            print(f"成功从文件加载了 {len(data)} 个用户")
+            return data
     except Exception as e:
         print(f"从文件加载用户数据错误: {e}")
         return []
@@ -224,11 +263,47 @@ def _save_users_to_file(users):
 def _load_data_from_file():
     """从本地文件加载链接数据（备用方法）"""
     data_file = 'data.json'
+    print(f"尝试从本地文件 {data_file} 加载链接数据")
+    
+    # 在Vercel环境中，返回一个示例数据
+    is_vercel = os.environ.get('VERCEL') == '1'
+    if is_vercel:
+        print("在Vercel环境中，返回默认链接数据")
+        # 返回一个简单的示例数据
+        return {
+            'groups': [
+                {
+                    'title': 'AI 工具链接',
+                    'description': '常用AI工具链接集合',
+                    'order': 1,
+                    'links': [
+                        {
+                            'title': 'ChatGPT',
+                            'url': 'https://chat.openai.com/',
+                            'description': 'OpenAI的ChatGPT对话工具',
+                            'order': 0
+                        },
+                        {
+                            'title': 'Gemini',
+                            'url': 'https://gemini.google.com/',
+                            'description': 'Google的Gemini AI平台',
+                            'order': 1
+                        }
+                    ]
+                }
+            ]
+        }
+    
+    # 本地环境从文件读取
     if not os.path.exists(data_file):
+        print(f"文件 {data_file} 不存在")
         return {'groups': []}
     try:
         with open(data_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            data = json.load(f)
+            group_count = len(data.get('groups', []))
+            print(f"成功从文件加载了 {group_count} 个分组")
+            return data
     except Exception as e:
         print(f"从文件加载链接数据错误: {e}")
         return {'groups': []}
