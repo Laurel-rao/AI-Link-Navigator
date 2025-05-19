@@ -26,6 +26,7 @@
 
 ## 步骤三：更新Firebase配置
 
+
 1. 打开项目中的`firebase_config.py`文件
 2. 用您的Firebase项目信息替换配置对象中的值
    ```python
