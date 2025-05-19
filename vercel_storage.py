@@ -15,7 +15,6 @@ import traceback
 from werkzeug.security import generate_password_hash
 import requests
 
-
 # Vercel Edge Config配置
 EDGE_CONFIG_ID = os.environ.get('EDGE_CONFIG_ID')
 EDGE_CONFIG_TOKEN = os.environ.get('EDGE_CONFIG_TOKEN')
