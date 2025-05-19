@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # 挂载配置文件，实现持久化
+      - ./data.json:/app/data.json
+      - ./users.json:/app/users.json
+    restart: unless-stopped
+    # 如需使用生产级WSGI服务器，可以修改Dockerfile中的CMD
+    # 或在这里覆盖命令，例如：
+    # command: gunicorn --bind 0.0.0.0:5000 app:app
+
+# 使用方法：
+# docker-compose up -d
