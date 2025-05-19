@@ -117,3 +117,20 @@
 3. 利用Vercel原生服务提高性能和可靠性
 
 要启用Edge Config存储功能，请参考`vercel-storage-setup.md`文件中的详细说明。
+
+### Vercel环境变量配置
+
+要在Vercel上成功部署并使用Edge Config存储，必须正确配置以下环境变量：
+
+1. 在Vercel仪表板(https://vercel.com)登录并进入项目
+2. 点击"Settings" > "Environment Variables"
+3. 添加以下两个环境变量：
+   - `edge-config-id`：您的Edge Config ID
+   - `edge-config-token`：您的Edge Config访问令牌
+
+**注意**：
+- 这些变量名必须与vercel.json中引用的变量名完全一致
+- 变量值必须是从Vercel Edge Config设置页面获取的有效ID和令牌
+- 部署错误`Error: Environment Variable "EDGE_CONFIG_ID" references Secret "edge-config-id", which does not exist`表示您尚未添加这些环境变量
+
+完成环境变量设置后，应用将自动使用Edge Config进行数据存储，无需修改任何代码。
