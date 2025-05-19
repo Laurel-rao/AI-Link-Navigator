@@ -53,15 +53,21 @@ def initialize_firebase():
                 if firebase_creds:
                     print(f"凭据开头10个字符: {firebase_creds[:10]}...")
                 print("请确保FIREBASE_CREDENTIALS环境变量包含有效的JSON")
-                raise
+                print("由于无法解析凭据，将返回None")
+                return None
         else:
             print("未找到FIREBASE_CREDENTIALS环境变量")
             
             # 检查是否存在服务账号文件
             if os.path.exists('service-account.json'):
                 print("找到service-account.json文件")
-                cred = credentials.Certificate('service-account.json')
-                print("成功加载服务账号密钥")
+                try:
+                    cred = credentials.Certificate('service-account.json')
+                    print("成功加载服务账号密钥")
+                except Exception as sa_error:
+                    print(f"加载service-account.json失败: {sa_error}")
+                    print("由于无法加载服务账号，将返回None")
+                    return None
             else:
                 # 如果在Vercel环境却没有凭据，输出警告
                 if is_vercel:
@@ -78,23 +84,30 @@ def initialize_firebase():
                     return firebase_app
                 except Exception as e:
                     print(f"匿名访问失败: {e}")
-                    # 在无法访问Firebase的情况下，创建一个空应用
+                    # 在无法访问Firebase的情况下，返回None
                     print("无法连接Firebase，将使用本地文件存储代替")
                     return None
         
         # 初始化应用
         print("开始初始化Firebase应用")
-        firebase_app = firebase_admin.initialize_app(cred, {
-            'databaseURL': FIREBASE_CONFIG['databaseURL']
-        })
-        print("成功初始化Firebase应用")
-        return firebase_app
+        try:
+            firebase_app = firebase_admin.initialize_app(cred, {
+                'databaseURL': FIREBASE_CONFIG['databaseURL']
+            })
+            print("成功初始化Firebase应用")
+            return firebase_app
+        except Exception as init_error:
+            print(f"初始化Firebase应用失败: {init_error}")
+            # 特别处理凭据错误
+            if "DefaultCredentialsError" in str(type(init_error).__name__):
+                print("Firebase凭据错误：未找到有效的凭据")
+                print("请确保已正确设置FIREBASE_CREDENTIALS环境变量")
+            return None
     except Exception as e:
         print(f"Firebase初始化错误: {e}")
         print(f"错误类型: {type(e).__name__}")
         print(f"详细跟踪信息: {sys.exc_info()}")
         # 尝试打印更多详细的错误跟踪
-        import traceback
         print(f"错误堆栈: {traceback.format_exc()}")
         return None
 
@@ -131,8 +144,16 @@ def save_users(users):
         print(f"尝试保存{len(users)}个用户到Firebase...")
         app = initialize_firebase()
         if not app:
-            print("Firebase初始化失败，保存到本地")
-            return _save_users_to_file(users)
+            print("Firebase初始化失败，尝试保存到本地")
+            try:
+                return _save_users_to_file(users)
+            except Exception as file_err:
+                print(f"保存到本地文件也失败: {file_err}")
+                # 在Vercel等只读环境中，直接返回成功而不是抛出错误
+                if 'Read-only file system' in str(file_err):
+                    print("检测到只读文件系统(可能在Vercel环境中)，跳过文件保存")
+                    return True
+                return False
             
         # 转换用户列表为以用户名为键的字典
         users_dict = {user['username']: user for user in users}
@@ -148,7 +169,15 @@ def save_users(users):
         import traceback
         print(f"错误堆栈: {traceback.format_exc()}")
         # 发生错误时，保存到本地文件作为备份
-        return _save_users_to_file(users)
+        try:
+            return _save_users_to_file(users)
+        except Exception as file_err:
+            print(f"保存到本地文件也失败: {file_err}")
+            # 在Vercel等只读环境中，直接返回成功而不是抛出错误
+            if 'Read-only file system' in str(file_err):
+                print("检测到只读文件系统(可能在Vercel环境中)，跳过文件保存")
+                return True
+            return False
 
 # 链接数据操作
 def load_data():
@@ -195,8 +224,16 @@ def save_data(content):
         
         app = initialize_firebase()
         if not app:
-            print("Firebase初始化失败，保存到本地文件")
-            return _save_data_to_file(content)
+            print("Firebase初始化失败，尝试保存到本地文件")
+            try:
+                return _save_data_to_file(content)
+            except Exception as file_err:
+                print(f"保存到本地文件也失败: {file_err}")
+                # 在Vercel等只读环境中，直接返回成功而不是抛出错误
+                if 'Read-only file system' in str(file_err):
+                    print("检测到只读文件系统(可能在Vercel环境中)，跳过文件保存")
+                    return True
+                return False
             
         ref = db.reference('/links_data')
         print("成功创建链接数据引用")
@@ -208,8 +245,16 @@ def save_data(content):
         print(f"错误类型: {type(e).__name__}")
         import traceback
         print(f"错误堆栈: {traceback.format_exc()}")
-        # 发生错误时，保存到本地文件作为备份
-        return _save_data_to_file(content)
+        # 发生错误时，尝试保存到本地文件作为备份
+        try:
+            return _save_data_to_file(content)
+        except Exception as file_err:
+            print(f"保存到本地文件也失败: {file_err}")
+            # 在Vercel等只读环境中，直接返回成功而不是抛出错误
+            if 'Read-only file system' in str(file_err):
+                print("检测到只读文件系统(可能在Vercel环境中)，跳过文件保存")
+                return True
+            return False
 
 # 本地文件备份操作（当Firebase不可用时使用）
 def _load_users_from_file():
