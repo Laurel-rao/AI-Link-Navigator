@@ -1,6 +1,7 @@
 """
 Vercel存储模块
 提供与Vercel Edge Config交互的函数，用于替代Firebase实时数据库
+使用Vercel的原生存储服务，避免Firebase凭据问题和只读文件系统限制
 """
 
 import os
