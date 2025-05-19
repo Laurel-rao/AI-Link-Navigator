@@ -1,0 +1,253 @@
+{
+  "groups": [
+    {
+      "title": "AI 创意与艺术",
+      "description": "探索AI在绘画生成、音乐创作、交互式叙事等创意和艺术领域的应用。",
+      "order": 2,
+      "links": [
+        {
+          "title": "Artbreeder",
+          "url": "https://www.artbreeder.com/",
+          "description": "使用生成对抗网络(GAN)混合和生成图像的在线工具。",
+          "order": 0
+        },
+        {
+          "title": "RunwayML",
+          "url": "https://runwayml.com/",
+          "description": "为创作者提供的AI工具平台，简化了机器学习模型的应用。",
+          "order": 1
+        },
+        {
+          "title": "AI Dungeon",
+          "url": "https://play.aidungeon.io/",
+          "description": "基于AI的文本冒险游戏，玩家可以体验无限可能的故事情节。",
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "AI 开发工具",
+      "description": "常用的AI开发框架、库和平台，帮助开发者构建、训练和部署AI模型。",
+      "order": 4,
+      "links": [
+        {
+          "title": "TensorFlow",
+          "url": "https://www.tensorflow.org/",
+          "description": "Google开发的端到端开源机器学习平台。",
+          "order": 0
+        },
+        {
+          "title": "PyTorch",
+          "url": "https://pytorch.org/",
+          "description": "Facebook AI Research团队开发的开源机器学习库，以其灵活性和动态图著称。",
+          "order": 1
+        },
+        {
+          "title": "Hugging Face Transformers",
+          "url": "https://huggingface.co/docs/transformers/index",
+          "description": "提供数千个预训练的Transformer模型，用于NLP、CV等任务。",
+          "order": 2
+        },
+        {
+          "title": "Google AI Platform",
+          "url": "https://cloud.google.com/ai-platform",
+          "description": "Google Cloud提供的统一AI开发平台，支持模型训练和部署。",
+          "order": 3
+        }
+      ]
+    },
+    {
+      "title": "AI 学习与研究",
+      "description": "探索人工智能基础知识、前沿研究和学术资源。提供机器学习课程、最新AI论文和深度学习专项课程的链接。",
+      "order": 4,
+      "links": [
+        {
+          "title": "Coursera - 机器学习",
+          "url": "https://www.coursera.org/learn/machine-learning",
+          "description": "吴恩达教授经典的机器学习入门课程，覆盖广泛的基础理论和实践。",
+          "order": 0
+        },
+        {
+          "title": "arXiv - 人工智能",
+          "url": "https://arxiv.org/list/cs.AI/recent",
+          "description": "获取最新的AI领域预印本论文，了解前沿研究动态。",
+          "order": 1
+        },
+        {
+          "title": "DeepLearning.AI",
+          "url": "https://www.deeplearning.ai/",
+          "description": "提供深度学习相关的系列专项课程，由吴恩达创立。",
+          "order": 2
+        },
+        {
+          "title": "Coursera - 机器学习",
+          "url": "https://www.coursera.org/learn/machine-learning",
+          "description": "吴恩达教授经典的机器学习入门课程，覆盖广泛的基础理论和实践。",
+          "order": 3
+        },
+        {
+          "title": "arXiv - 人工智能",
+          "url": "https://arxiv.org/list/cs.AI/recent",
+          "description": "获取最新的AI领域预印本论文，了解前沿研究动态。",
+          "order": 4
+        },
+        {
+          "title": "DeepLearning.AI",
+          "url": "https://www.deeplearning.ai/",
+          "description": "提供深度学习相关的系列专项课程，由吴恩达创立。",
+          "order": 5
+        }
+      ]
+    },
+    {
+      "title": "AI 伦理与社会影响",
+      "description": "探讨AI技术带来的伦理挑战、社会公平性、隐私保护和负责任的AI发展。",
+      "order": 4,
+      "links": [
+        {
+          "title": "AI Ethics Lab",
+          "url": "https://aiethicslab.com/",
+          "description": "专注于AI伦理研究、教育和咨询的机构。",
+          "order": 0
+        },
+        {
+          "title": "Partnership on AI",
+          "url": "https://www.partnershiponai.org/",
+          "description": "由学术界、工业界和非营利组织共同组成的，致力于负责任AI的全球性联盟。",
+          "order": 1
+        },
+        {
+          "title": "AI Now Institute",
+          "url": "https://ainowinstitute.org/",
+          "description": "研究人工智能社会影响的跨学科研究中心。",
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "自然语言处理 (NLP)",
+      "description": "涉及文本分析、机器翻译、情感识别、问答系统等自然语言理解和生成技术。",
+      "order": 4,
+      "links": [
+        {
+          "title": "Stanford NLP Group",
+          "url": "https://nlp.stanford.edu/",
+          "description": "斯坦福大学NLP研究小组，提供开源工具和数据集。",
+          "order": 0
+        },
+        {
+          "title": "NLTK",
+          "url": "https://www.nltk.org/",
+          "description": "用于Python的自然语言处理工具包，广泛用于教学和研究。",
+          "order": 1
+        },
+        {
+          "title": "spaCy",
+          "url": "https://spacy.io/",
+          "description": "工业级强度的Python NLP库，注重性能和易用性。",
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "计算机视觉 (CV)",
+      "description": "关注图像识别、物体检测、图像分割、人脸识别和视频分析等技术。",
+      "order": 5,
+      "links": [
+        {
+          "title": "OpenCV",
+          "url": "https://opencv.org/",
+          "description": "开源计算机视觉库，包含大量CV算法和工具。",
+          "order": 0
+        },
+        {
+          "title": "YOLO (You Only Look Once)",
+          "url": "https://pjreddie.com/darknet/yolo/",
+          "description": "实时目标检测算法，以其速度和准确性闻名。",
+          "order": 1
+        },
+        {
+          "title": "ImageNet",
+          "url": "http://www.image-net.org/",
+          "description": "大型视觉对象识别数据库，常用于训练和评估CV模型。",
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "AI 行业应用案例",
+      "description": "展示AI技术在金融科技、智能医疗、自动驾驶、智能制造等多个行业的具体应用和解决方案。",
+      "order": 6,
+      "links": [
+        {
+          "title": "AI in Healthcare (NVIDIA)",
+          "url": "https://www.nvidia.com/en-us/industries/healthcare/",
+          "description": "NVIDIA在医疗领域的AI解决方案，包括医学影像分析和药物研发。",
+          "order": 0
+        },
+        {
+          "title": "AI in Finance (Towards Data Science)",
+          "url": "https://towardsdatascience.com/tagged/ai-in-finance",
+          "description": "Towards Data Science上关于AI在金融领域应用的文章集合。",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "title": "AI 社区与资讯平台",
+      "description": "获取最新的AI行业新闻、技术动态、研究进展，并参与AI开发者和爱好者的社区讨论。",
+      "order": 7,
+      "links": [
+        {
+          "title": "Reddit - r/MachineLearning",
+          "url": "https://www.reddit.com/r/MachineLearning/",
+          "description": "Reddit上关于机器学习的热门社区，讨论最新研究和技术。",
+          "order": 0
+        },
+        {
+          "title": "Towards Data Science",
+          "url": "https://towardsdatascience.com/",
+          "description": "Medium上的热门博客平台，分享数据科学和AI相关的见解和教程。",
+          "order": 1
+        },
+        {
+          "title": "MIT Technology Review - AI",
+          "url": "https://www.technologyreview.com/artificial-intelligence/",
+          "description": "MIT科技评论关于人工智能领域的深度报道和分析。",
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "AI 硬件与计算资源",
+      "description": "了解支持AI模型训练和推理的专用芯片（如GPU、TPU）、服务器以及云计算服务。",
+      "order": 8,
+      "links": [
+        {
+          "title": "NVIDIA GPUs for Deep Learning",
+          "url": "https://www.nvidia.com/en-us/deep-learning-ai/products/graphics-cards/",
+          "description": "NVIDIA针对深度学习优化的GPU产品线。",
+          "order": 0
+        },
+        {
+          "title": "Google TPUs",
+          "url": "https://cloud.google.com/tpu",
+          "description": "Google专为机器学习和神经网络设计的张量处理单元。",
+          "order": 1
+        },
+        {
+          "title": "AWS Inferentia",
+          "url": "https://aws.amazon.com/machine-learning/inferentia/",
+          "description": "Amazon EC2中用于高性能机器学习推理的定制芯片。",
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "AI 职业与发展机会",
+      "description": "探索AI领域的职业发展路径、所需技能、在线课程、认证以及相关的招聘信息平台。",
+      "order": 9,
+      "links": []
+    }
+  ]
+}

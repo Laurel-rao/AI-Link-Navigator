@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI导航 - 管理后台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'apple-blue': '#0071e3',
+            'apple-dark': '#1d1d1f',
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* General Styles & Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #2d3748; }
+    ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #718096; }
+    .search-highlight { background-color: yellow; color: black; }
+    .tooltip-container { position: relative; display: inline-block; }
+    .tooltip-icon { cursor: pointer; font-family: 'Apple Symbols', 'Segoe UI Symbol', sans-serif; }
+    .tooltip-text { visibility: hidden; width: 220px; background-color: #374151; color: #fff; text-align: left; border-radius: 6px; padding: 8px 12px; position: absolute; z-index: 10; bottom: 130%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out; font-size: 0.875rem; line-height: 1.4; box-shadow: 0 2px 10px rgba(0,0,0,0.2); pointer-events: none; }
+    .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: #374151 transparent transparent transparent; }
+    .tooltip-container:hover .tooltip-text { visibility: visible; opacity: 1; }
+    .order-input { width: 60px; text-align: center; }
+    #save-btn-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 1000; }
+    
+    /* Tab Styles */
+    .tab-button {
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+        border-radius: 0.375rem 0.375rem 0 0; /* rounded-t-md */
+        background-color: #4a5568; /* slate-600 */
+        color: #cbd5e1; /* slate-300 */
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+    }
+    .tab-button:hover {
+        background-color: #718096; /* slate-500 */
+    }
+    .tab-button.active {
+        background-color: #1f2937; /* slate-800, same as main content area */
+        color: white;
+        border-bottom: 2px solid #3b82f6; /* blue-500 */
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    /* Styles for the floating add user form */
+    #add-user-form-container {
+        /* Default hidden, shown via JS */
+        /* Could be styled as a modal or a dropdown-like panel */
+        background-color: #374151; /* slate-700 */
+        border: 1px solid #4a5568; /* slate-600 */
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    #edit-user-modal {
+        background-color: rgba(0, 0, 0, 0.6);
+    }
+    .modal-content {
+        background-color: #1f2937; /* slate-800 */
+        max-width: 500px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-white p-6 md:p-8 pb-24">
+  <div id="admin-content-wrapper" style="display: none;">
+    <div class="max-w-6xl mx-auto">
+      <header class="mb-8">
+        <div class="flex justify-between items-center mb-4">
+          <h1 class="text-3xl font-bold">AI导航管理后台</h1>
+          <div class="flex items-center space-x-4">
+              <a href="/" class="text-blue-400 hover:text-blue-300 flex items-center" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                预览网站
+              </a>
+              <a href="/logout" class="text-red-400 hover:text-red-300 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" /></svg>
+                  退出登录
+              </a>
+          </div>
+        </div>
+        <div class="mb-6">
+          <input type="text" id="search-input" placeholder="在当前标签页内搜索..." class="w-full bg-slate-800 border border-slate-600 rounded px-4 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+      </header>
+
+      <!-- Tab Navigation -->
+      <div class="mb-6 border-b border-slate-700">
+        <button class="tab-button active" data-tab="links-management">链接管理</button>
+        <button class="tab-button" data-tab="users-management">用户管理</button>
+      </div>
+
+      <!-- Tab Content -->
+      <div id="links-management" class="tab-content active">
+        <main class="bg-slate-800 rounded-xl p-6">
+          <div class="mb-8">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-semibold">分组管理</h2>
+              <button id="add-group-btn" class="bg-blue-500 hover:bg-blue-600 px-3 py-1.5 rounded text-sm flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                添加分组
+              </button>
+            </div>
+            <div id="groups-container" class="space-y-6"></div>
+            <p id="no-results-message" class="text-slate-400 text-center py-4 hidden">未找到匹配的结果。</p>
+          </div>
+        </main>
+      </div>
+
+      <div id="users-management" class="tab-content">
+        <main class="bg-slate-800 rounded-xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold">用户账户管理</h2>
+                <button id="show-add-user-form-btn" class="bg-purple-500 hover:bg-purple-600 px-3 py-1.5 rounded text-sm flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                    添加用户
+                </button>
+            </div>
+            
+            <div id="add-user-form-container" class="mb-8 p-4 bg-slate-700 rounded-lg shadow-lg hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-medium text-blue-400">添加新用户</h3>
+                    <button id="close-add-user-form-btn" class="text-slate-400 hover:text-white">&times;</button>
+                </div>
+                <form id="add-user-form" class="space-y-4">
+                    <div>
+                        <label for="new-username" class="block text-sm text-slate-300">用户名</label>
+                        <input type="text" id="new-username" required class="mt-1 w-full bg-slate-800 border-slate-600 rounded px-3 py-2 text-white">
+                    </div>
+                    <div>
+                        <label for="new-password" class="block text-sm text-slate-300">密码</label>
+                        <input type="password" id="new-password" required class="mt-1 w-full bg-slate-800 border-slate-600 rounded px-3 py-2 text-white">
+                    </div>
+                    <div>
+                        <label for="new-role" class="block text-sm text-slate-300">角色</label>
+                        <select id="new-role" class="mt-1 w-full bg-slate-800 border-slate-600 rounded px-3 py-2 text-white">
+                            <option value="user">普通用户 (User)</option>
+                            <option value="admin">管理员 (Admin)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-sm">创建用户</button>
+                    <p id="add-user-message" class="text-sm mt-2"></p>
+                </form>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-medium mb-3 text-blue-400">现有用户列表</h3>
+                <div id="users-list-container" class="space-y-3"></div>
+                <p id="users-loading-message" class="text-slate-400" style="display: none;">正在加载用户...</p>
+                <p id="no-users-found-message" class="text-slate-400 text-center py-4 hidden">未找到用户。</p>
+            </div>
+        </main>
+      </div>
+ 
+      <div id="save-btn-container">
+        <button id="save-btn" class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg shadow-xl text-lg flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+          保存更改 (仅链接管理)
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="auth-failed-message" class="text-center text-red-400 text-lg p-10" style="display: none;">
+      <p>您没有权限访问此页面。</p>
+      <a href="/" class="text-blue-400 hover:text-blue-300">返回主页</a>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div id="edit-user-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+    <div class="modal-content p-6 rounded-lg shadow-xl w-full">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-blue-400">编辑用户</h3>
+            <button id="close-edit-user-modal-btn" class="text-slate-400 hover:text-white">&times;</button>
+        </div>
+        <form id="edit-user-form" class="space-y-4">
+            <input type="hidden" id="edit-username-original">
+            <div>
+                <label for="edit-username-display" class="block text-sm text-slate-300">用户名 (不可修改)</label>
+                <input type="text" id="edit-username-display" disabled class="mt-1 w-full bg-slate-700 border-slate-600 rounded px-3 py-2 text-slate-400 cursor-not-allowed">
+            </div>
+            <div>
+                <label for="edit-password" class="block text-sm text-slate-300">新密码 (留空则不修改)</label>
+                <input type="password" id="edit-password" class="mt-1 w-full bg-slate-800 border-slate-600 rounded px-3 py-2 text-white">
+            </div>
+            <div>
+                <label for="edit-password-confirm" class="block text-sm text-slate-300">确认新密码</label>
+                <input type="password" id="edit-password-confirm" class="mt-1 w-full bg-slate-800 border-slate-600 rounded px-3 py-2 text-white">
+            </div>
+            <div>
+                <label for="edit-role" class="block text-sm text-slate-300">角色</label>
+                <select id="edit-role" class="mt-1 w-full bg-slate-800 border-slate-600 rounded px-3 py-2 text-white">
+                    <option value="user">普通用户 (User)</option>
+                    <option value="admin">管理员 (Admin)</option>
+                </select>
+            </div>
+            <div class="flex justify-end space-x-3">
+                 <button type="button" id="cancel-edit-user-btn" class="bg-slate-600 hover:bg-slate-500 px-4 py-2 rounded text-sm">取消</button>
+                 <button type="submit" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-sm">保存更改</button>
+            </div>
+            <p id="edit-user-message" class="text-sm mt-2"></p>
+        </form>
+    </div>
+  </div>
+
+  <!-- Group/Link Templates remain the same -->
+  <template id="group-template"> <div class="group-item bg-slate-700 rounded-lg p-4 shadow-md"> <div class="group-header border-b border-slate-600 pb-3 mb-4"> <div class="flex justify-between items-start mb-2"> <div class="flex items-center"> <h3 class="text-lg font-semibold text-blue-400">编辑分组信息</h3> <div class="tooltip-container inline-block ml-2"> <span class="tooltip-icon text-slate-400 hover:text-blue-300">ⓘ</span> <span class="tooltip-text group-description-tooltip"></span> </div> </div> <button class="delete-group text-red-400 hover:text-red-300 p-1 -mt-1 -mr-1"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg> </button> </div> <div class="space-y-3"> <div> <label class="block text-sm text-slate-400 mb-1">分组标题</label> <input type="text" class="group-title w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"> </div> <div> <label class="block text-sm text-slate-400 mb-1">分组描述 (将在悬浮图标中显示)</label> <textarea class="group-description w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none" rows="2"></textarea> </div> <div> <label class="block text-sm text-slate-400 mb-1">排序 (数字越小越靠前)</label> <input type="number" class="group-order order-input bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"> </div> </div> </div> <div class="links-section"> <div class="flex justify-between items-center mb-3"> <h4 class="text-md font-medium text-slate-300">链接列表</h4> <button class="add-link bg-slate-600 hover:bg-slate-500 px-2 py-1 rounded text-xs flex items-center"> <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" /></svg> 添加链接 </button> </div> <div class="links-container space-y-3 max-h-72 overflow-y-auto pr-2"></div> </div> </div> </template>
+  <template id="link-template"> <div class="link-item bg-slate-600/50 p-3 rounded-md"> <div class="flex items-center space-x-2 mb-2"> <span class="text-sm text-slate-300 shrink-0">排序:</span> <input type="number" class="link-order order-input bg-slate-800 border border-slate-500 rounded px-2 py-1.5 text-sm text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none mr-2"> <span class="text-sm text-slate-300 shrink-0">标题：</span> <input type="text" placeholder="链接标题" class="link-title flex-1 bg-slate-800 border border-slate-500 rounded px-2 py-1.5 text-sm text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"> <div class="tooltip-container inline-block ml-1"> <span class="tooltip-icon text-slate-400 hover:text-blue-300">ⓘ</span> <span class="tooltip-text link-description-tooltip">无描述</span> </div> <button class="delete-link text-red-400 hover:text-red-300 p-1"> <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg> </button> </div> <div class="flex items-center space-x-2 mb-2"> <span class="text-sm text-slate-300 shrink-0">链接：</span> <input type="text" placeholder="链接URL (例如: https://example.com)" class="link-url w-full bg-slate-800 border border-slate-500 rounded px-2 py-1.5 text-sm text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"> </div> <div class="flex items-center space-x-2"> <span class="text-sm text-slate-300 shrink-0">描述：</span> <input type="text" placeholder="链接描述 (可选, 悬浮显示)" class="link-description w-full bg-slate-800 border border-slate-500 rounded px-2 py-1.5 text-sm text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"> </div> </div> </template>
+  <!-- User Item Template -->
+  <template id="user-item-template">
+    <div class="user-item flex justify-between items-center p-3 bg-slate-700/60 rounded-md hover:bg-slate-600/80">
+        <div>
+            <p class="text-white"><strong class="font-medium user-username"></strong> (<span class="text-sm text-slate-400 user-role"></span>)</p>
+        </div>
+        <div class="space-x-2">
+            <button class="edit-user-btn text-blue-400 hover:text-blue-300 text-xs">编辑</button>
+            <button class="delete-user-btn text-red-400 hover:text-red-300 text-xs">删除</button>
+        </div>
+    </div>
+  </template>
+
+  <script>
+    async function fetchAdminUserInfo() {
+        try {
+            const response = await fetch('/api/user-info');
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+                }
+                return null;
+            }
+            const userInfo = await response.json();
+            return userInfo.success ? userInfo : null;
+        } catch (error) {
+            console.error("Error fetching user info for admin page:", error);
+            window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+            return null;
+        }
+    }
+
+    let allUsersCache = []; 
+
+    // Moved loadAndRenderUsers to be defined before setupTabs uses it in an event listener context
+    async function loadAndRenderUsers(searchTerm = '') {
+        const usersLoadingMessage = document.getElementById('users-loading-message');
+        const noUsersFoundMessage = document.getElementById('no-users-found-message');
+        const usersListContainer = document.getElementById('users-list-container');
+        
+        console.log(`[UserMgmt] loadAndRenderUsers called. Search: "${searchTerm}". Cache size: ${allUsersCache.length}`);
+        if(usersLoadingMessage) usersLoadingMessage.style.display = 'block';
+        if(noUsersFoundMessage) noUsersFoundMessage.style.display = 'none';
+        if(usersListContainer) usersListContainer.innerHTML = '';
+        let currentUsersToDisplay = [];
+        let newFetchPerformed = false;
+
+        try {
+            if (allUsersCache.length === 0 && !sessionStorage.getItem('users_loaded_once_in_tab_session')) {
+                console.log("[UserMgmt] Cache empty, fetching users from API...");
+                const response = await fetch('/api/users');
+                console.log("[UserMgmt] Fetch response status:", response.status);
+                if (!response.ok) throw new Error('Failed to fetch users: ' + response.statusText);
+                allUsersCache = await response.json();
+                sessionStorage.setItem('users_loaded_once_in_tab_session', 'true');
+                newFetchPerformed = true;
+                console.log("[UserMgmt] Users fetched and cached:", JSON.parse(JSON.stringify(allUsersCache)));
+            } else {
+                console.log("[UserMgmt] Using cached users. Cache size:", allUsersCache.length);
+            }
+            
+            const normalizedSearchTerm = searchTerm.toLowerCase().trim();
+            if (normalizedSearchTerm) {
+                currentUsersToDisplay = allUsersCache.filter(user => 
+                    user.username.toLowerCase().includes(normalizedSearchTerm) || 
+                    user.role.toLowerCase().includes(normalizedSearchTerm));
+            } else {
+                currentUsersToDisplay = allUsersCache; 
+            }
+            
+            if(usersLoadingMessage) usersLoadingMessage.style.display = 'none';
+
+            if (currentUsersToDisplay && currentUsersToDisplay.length > 0) {
+                if(noUsersFoundMessage) noUsersFoundMessage.style.display = 'none';
+                currentUsersToDisplay.forEach(user => {
+                    const userItemTemplate = document.getElementById('user-item-template').content.cloneNode(true);
+                    const userItemDiv = userItemTemplate.querySelector('.user-item'); // Get the div itself for data attributes
+                    userItemDiv.dataset.username = user.username; // Store username for edit/delete
+                    userItemDiv.dataset.role = user.role;
+
+                    userItemTemplate.querySelector('.user-username').textContent = user.username;
+                    userItemTemplate.querySelector('.user-role').textContent = user.role;
+                    
+                    const deleteBtn = userItemTemplate.querySelector('.delete-user-btn');
+                    deleteBtn.addEventListener('click', async () => {
+                        if (confirm(`确定要删除用户 "${user.username}" 吗？此操作不可撤销。`)) {
+                            try {
+                                const delResponse = await fetch(`/api/users/${user.username}`, { method: 'DELETE' });
+                                const result = await delResponse.json();
+                                if (delResponse.ok && result.success) {
+                                    alert(result.message);
+                                    allUsersCache = allUsersCache.filter(u => u.username !== user.username); 
+                                    loadAndRenderUsers(document.getElementById('search-input').value); 
+                                } else {
+                                    alert(`删除失败: ${result.message || '未知错误'}`);
+                                }
+                            } catch (err) {
+                                alert(`删除用户时出错: ${err.message}`);
+                            }
+                        }
+                    });
+
+                    const editBtn = userItemTemplate.querySelector('.edit-user-btn');
+                    editBtn.addEventListener('click', () => {
+                        openEditUserModal(user.username, user.role);
+                    });
+
+                    if(usersListContainer) usersListContainer.appendChild(userItemTemplate);
+                });
+            } else {
+                if (normalizedSearchTerm) {
+                    if(noUsersFoundMessage) {
+                        noUsersFoundMessage.textContent = `未找到与 "${searchTerm}" 匹配的用户。`;
+                        noUsersFoundMessage.style.display = 'block';
+                    }
+                } else if (allUsersCache.length === 0 && (newFetchPerformed || sessionStorage.getItem('users_loaded_once_in_tab_session'))) {
+                    if(noUsersFoundMessage) {
+                        noUsersFoundMessage.textContent = '系统中还没有用户账户。';
+                        noUsersFoundMessage.style.display = 'block';
+                    }
+                }
+                if(usersListContainer) usersListContainer.innerHTML = ''; 
+            }
+        } catch (error) {
+            console.error("[UserMgmt] Error in loadAndRenderUsers:", error);
+            if(usersLoadingMessage) usersLoadingMessage.style.display = 'none';
+            if(usersListContainer) usersListContainer.innerHTML = '<p class="text-red-400">加载用户列表失败。请刷新页面或检查网络连接。</p>';
+            allUsersCache = []; 
+            sessionStorage.removeItem('users_loaded_once_in_tab_session'); 
+        }
+    }
+
+    function setupTabs() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const searchInput = document.getElementById('search-input');
+        const saveChangesButton = document.getElementById('save-btn');
+        console.log("[SetupTabs] loadAndRenderUsers type:", typeof loadAndRenderUsers); // Debug line
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                const targetTab = button.dataset.tab;
+                tabContents.forEach(content => {
+                    content.classList.toggle('active', content.id === targetTab);
+                });
+                if (targetTab === 'users-management') {
+                    searchInput.placeholder = '按用户名或角色搜索...';
+                    if (saveChangesButton) saveChangesButton.parentElement.style.display = 'none'; 
+                    console.log("[UserMgmt Tab Click] User management tab activated. Cache length:", allUsersCache.length);
+                    loadAndRenderUsers(searchInput.value); 
+                } else {
+                    searchInput.placeholder = '搜索分组或链接...';
+                    if (saveChangesButton) saveChangesButton.parentElement.style.display = 'block'; 
+                }
+            });
+        });
+        // Initial call if users tab is active by default (it's not, but good practice)
+        if (document.querySelector('.tab-button[data-tab="users-management"].active')){
+            loadAndRenderUsers();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const userInfo = await fetchAdminUserInfo();
+      const adminContentWrapper = document.getElementById('admin-content-wrapper');
+      const authFailedMessage = document.getElementById('auth-failed-message');
+
+      if (!userInfo || userInfo.role !== 'admin') {
+          adminContentWrapper.style.display = 'none';
+          authFailedMessage.style.display = 'block';
+          return; 
+      }
+      adminContentWrapper.style.display = 'block';
+      authFailedMessage.style.display = 'none';
+
+      // Define all functions that might be called by event listeners or other functions here
+      // Ensure loadAndRenderUsers is defined before setupTabs, which sets up listeners that call it.
+      // (Moved loadAndRenderUsers to global scope just above setupTabs for clarity and to ensure availability)
+
+      setupTabs(); 
+
+      let linkDataGlobal = { groups: [] };
+      const groupsContainer = document.getElementById('groups-container');
+      const saveLinksBtn = document.getElementById('save-btn');
+      const addGroupBtn = document.getElementById('add-group-btn');
+      const searchInputGlobal = document.getElementById('search-input'); 
+      const noResultsMessageLinks = document.getElementById('no-results-message');
+      
+      const addUserFormContainer = document.getElementById('add-user-form-container');
+      const showAddUserFormBtn = document.getElementById('show-add-user-form-btn');
+      const closeAddUserFormBtn = document.getElementById('close-add-user-form-btn');
+      const addUserForm = document.getElementById('add-user-form');
+      // Users list elements are now obtained inside loadAndRenderUsers to ensure they exist
+      const addUserMessage = document.getElementById('add-user-message');
+      
+      if(showAddUserFormBtn){
+        showAddUserFormBtn.addEventListener('click', () => {
+            addUserFormContainer.style.display = addUserFormContainer.style.display === 'none' ? 'block' : 'none';
+            if(addUserFormContainer.style.display === 'block') addUserForm.reset(); addUserMessage.textContent = '';
+        });
+      }
+      if(closeAddUserFormBtn){
+        closeAddUserFormBtn.addEventListener('click', () => addUserFormContainer.style.display = 'none');
+      }
+
+      if (addUserForm) {
+        addUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('new-username').value;
+            const password = document.getElementById('new-password').value;
+            const role = document.getElementById('new-role').value;
+            addUserMessage.textContent = '';
+            addUserMessage.classList.remove('text-green-400', 'text-red-400');
+
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role })
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    addUserMessage.textContent = result.message || '用户创建成功!';
+                    addUserMessage.classList.add('text-green-400');
+                    addUserForm.reset();
+                    allUsersCache = []; 
+                    sessionStorage.removeItem('users_loaded_once_in_tab_session');
+                    loadAndRenderUsers(searchInputGlobal.value); 
+                    addUserFormContainer.style.display = 'none'; 
+                } else {
+                    addUserMessage.textContent = `创建失败: ${result.message || '未知错误'}`;
+                    addUserMessage.classList.add('text-red-400');
+                }
+            } catch (err) {
+                addUserMessage.textContent = `创建用户时出错: ${err.message}`;
+                addUserMessage.classList.add('text-red-400');
+            }
+        });
+      }
+      
+      async function loadLinkData() {
+          try {
+            const response = await fetch('data.json?' + new Date().getTime()); 
+            if (!response.ok) {
+                 if (response.status === 401 || response.status === 403) { 
+                    window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+                    return null; 
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const loadedData = await response.json();
+            
+            if(loadedData.groups && Array.isArray(loadedData.groups)) {
+                loadedData.groups.forEach((g, i) => { 
+                    g.order = g.order === undefined ? i : parseInt(g.order, 10);
+                    if(g.links && Array.isArray(g.links)){
+                        g.links.forEach((l, j) => l.order = l.order === undefined ? j : parseInt(l.order, 10));
+                    }
+                });
+            }
+            linkDataGlobal = loadedData;
+            renderLinkGroups();
+          } catch (error) {
+            console.error('加载链接数据失败:', error);
+            alert('加载链接数据失败，请检查data.json文件或网络连接。');
+            linkDataGlobal = { groups: [] }; 
+            renderLinkGroups();
+          }
+      }
+
+      function sortLinkData() {
+          if (linkDataGlobal.groups && Array.isArray(linkDataGlobal.groups)) {
+            linkDataGlobal.groups.sort((a, b) => (a.order || 0) - (b.order || 0));
+            linkDataGlobal.groups.forEach(group => {
+                if (group.links && Array.isArray(group.links)) {
+                    group.links.sort((a, b) => (a.order || 0) - (b.order || 0));
+                }
+            });
+        }
+      }
+
+      function renderLinkGroups(searchTerm = '') {
+        sortLinkData(); 
+        groupsContainer.innerHTML = '';
+        let matchFound = false;
+        const normalizedSearchTerm = searchTerm.toLowerCase().trim();
+
+        linkDataGlobal.groups.forEach((group, groupIndex) => {
+          const groupTitle = group.title || '';
+          const groupDescriptionText = group.description || '';
+          let groupMatches = false;
+          if (!normalizedSearchTerm || 
+              groupTitle.toLowerCase().includes(normalizedSearchTerm) || 
+              groupDescriptionText.toLowerCase().includes(normalizedSearchTerm)) {
+            groupMatches = true;
+          }
+
+          const groupElement = createLinkGroupElement(group, groupIndex, normalizedSearchTerm, groupMatches);
+          
+          if(groupMatches || groupElement.dataset.hasMatchingLink === 'true') {
+            groupsContainer.appendChild(groupElement);
+            matchFound = true;
+          }
+        });
+        noResultsMessageLinks.classList.toggle('hidden', matchFound);
+        if (!matchFound && normalizedSearchTerm) {
+           noResultsMessageLinks.textContent = `未找到与 "${searchTerm}" 匹配的结果。`;
+        } else if (!matchFound && !normalizedSearchTerm && linkDataGlobal.groups.length === 0) {
+           noResultsMessageLinks.textContent = '还没有任何分组，请点击 "添加分组" 来创建。';
+           noResultsMessageLinks.classList.remove('hidden');
+        }
+      }
+      
+      function createLinkGroupElement(group, groupIndexInData, searchTerm = '', groupMatchesDirectly = false) {
+        const template = document.getElementById('group-template').content.cloneNode(true);
+        const groupElement = template.querySelector('.group-item');
+        groupElement.dataset.id = groupIndexInData; 
+
+        groupElement.querySelector('.group-title').value = group.title || '';
+        groupElement.querySelector('.group-description').value = group.description || '';
+        groupElement.querySelector('.group-description-tooltip').textContent = group.description || '无分组描述';
+        groupElement.querySelector('.group-order').value = group.order !== undefined ? group.order : groupIndexInData; 
+
+        const linksContainer = groupElement.querySelector('.links-container');
+        linksContainer.innerHTML = ''; 
+        let hasMatchingLink = false;
+        
+        if (group.links && group.links.length > 0) {
+          group.links.forEach((link, linkIndexInGroup) => {
+            const linkTitle = link.title || '';
+            const linkUrl = link.url || '';
+            const linkDescriptionText = link.description || '';
+            let linkMatches = false;
+            if (!searchTerm || 
+                linkTitle.toLowerCase().includes(searchTerm) || 
+                linkUrl.toLowerCase().includes(searchTerm) ||
+                linkDescriptionText.toLowerCase().includes(searchTerm)) {
+              linkMatches = true;
+              hasMatchingLink = true;
+            }
+            if (groupMatchesDirectly || linkMatches) { 
+                const linkElement = createLinkEntryElement(link, linkIndexInGroup);
+                linksContainer.appendChild(linkElement);
+            }
+          });
+        }
+        groupElement.dataset.hasMatchingLink = hasMatchingLink;
+        
+        groupElement.querySelector('.add-link').addEventListener('click', () => {
+          const groupData = linkDataGlobal.groups[groupIndexInData];
+          if(!groupData.links) groupData.links = [];
+          const newOrder = groupData.links.length > 0 ? Math.max(...groupData.links.map(l => l.order || 0)) + 1 : 0;
+          const newLink = { title: '新链接', url: 'https://', description: '', order: newOrder }; 
+          groupData.links.push(newLink); 
+          renderLinkGroups(searchInputGlobal.value); 
+        });
+        
+        groupElement.querySelector('.delete-group').addEventListener('click', () => {
+          if (confirm(`确定要删除分组 "${group.title || '未命名分组'}" 吗？`)) {
+            linkDataGlobal.groups.splice(groupIndexInData, 1);
+            renderLinkGroups(searchInputGlobal.value); 
+          }
+        });
+        return groupElement;
+      }
+
+      function createLinkEntryElement(link, linkIndexInGroup) {
+        const template = document.getElementById('link-template').content.cloneNode(true);
+        const linkElement = template.querySelector('.link-item');
+        linkElement.dataset.index = linkIndexInGroup; 
+
+        linkElement.querySelector('.link-title').value = link.title || '';
+        linkElement.querySelector('.link-url').value = link.url || '';
+        linkElement.querySelector('.link-description').value = link.description || '';
+        linkElement.querySelector('.link-description-tooltip').textContent = link.description || '无链接描述';
+        linkElement.querySelector('.link-order').value = link.order !== undefined ? link.order : linkIndexInGroup;
+
+        linkElement.querySelector('.delete-link').addEventListener('click', (e) => {
+          const groupElement = e.target.closest('.group-item');
+          const groupIndex = parseInt(groupElement.dataset.id); 
+          const currentLinkElements = Array.from(groupElement.querySelectorAll('.links-container .link-item'));
+          const actualLinkVisualIndex = currentLinkElements.indexOf(e.target.closest('.link-item'));
+
+          if (actualLinkVisualIndex !== -1 && linkDataGlobal.groups[groupIndex] && linkDataGlobal.groups[groupIndex].links) {
+            linkDataGlobal.groups[groupIndex].links.splice(actualLinkVisualIndex, 1); 
+            renderLinkGroups(searchInputGlobal.value); 
+          }
+        });
+        return linkElement;
+      }
+
+      if(addGroupBtn) {
+        addGroupBtn.addEventListener('click', () => {
+            const newOrder = linkDataGlobal.groups.length > 0 ? Math.max(...linkDataGlobal.groups.map(g => g.order || 0)) + 1 : 0;
+            const newGroup = { title: '新分组', description: '这是新分组的描述。', order: newOrder, links: [] };
+            linkDataGlobal.groups.push(newGroup); 
+            renderLinkGroups(searchInputGlobal.value); 
+            const lastGroupElement = groupsContainer.querySelector('.group-item:last-child');
+            if(lastGroupElement) {
+                lastGroupElement.querySelector('.group-title').focus();
+                lastGroupElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+      }
+      
+      if(saveLinksBtn){
+        saveLinksBtn.addEventListener('click', async () => {
+            try {
+            sortLinkData();
+            const response = await fetch('/api/save-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groups: linkDataGlobal.groups })
+            });
+            if (response.ok) {
+                alert('链接数据保存成功！');
+            } else {
+                const errorData = await response.json();
+                alert(`链接数据保存失败！${errorData.error || '服务器错误'}`);
+            }
+            } catch (error) {
+            console.error('保存链接数据出错:', error);
+            alert('保存链接数据时发生客户端错误。');
+            }
+        });
+      }
+
+      if(searchInputGlobal){
+        searchInputGlobal.addEventListener('input', (e) => {
+            const activeTab = document.querySelector('.tab-button.active').dataset.tab;
+            if(activeTab === 'links-management'){
+                 renderLinkGroups(e.target.value);
+            } else if (activeTab === 'users-management'){
+                loadAndRenderUsers(e.target.value);
+            }
+        });
+      }
+      
+      if(groupsContainer){
+        groupsContainer.addEventListener('input', (e) => {
+            const target = e.target;
+            const groupElement = target.closest('.group-item');
+            if (!groupElement || !document.getElementById('links-management').classList.contains('active')) return;
+
+            const groupIndex = parseInt(groupElement.dataset.id); 
+            const groupData = linkDataGlobal.groups[groupIndex];
+            if (!groupData) return; 
+
+            let needsReRender = false;
+
+            if (target.classList.contains('group-title')) groupData.title = target.value;
+            else if (target.classList.contains('group-description')) {
+            groupData.description = target.value;
+            groupElement.querySelector('.group-description-tooltip').textContent = target.value || '无分组描述';
+            } else if (target.classList.contains('group-order')) {
+                groupData.order = parseInt(target.value, 10) || 0;
+                needsReRender = true; 
+            } else {
+                const linkElement = target.closest('.link-item');
+                if (linkElement) {
+                    const linkIndex = parseInt(linkElement.dataset.index);
+                    const linkData = groupData.links[linkIndex];
+                    if(!linkData) return;
+
+                    if (target.classList.contains('link-title')) linkData.title = target.value;
+                    else if (target.classList.contains('link-url')) linkData.url = target.value;
+                    else if (target.classList.contains('link-description')) {
+                        linkData.description = target.value;
+                        linkElement.querySelector('.link-description-tooltip').textContent = target.value || '无链接描述';
+                    } else if (target.classList.contains('link-order')) {
+                        linkData.order = parseInt(target.value, 10) || 0;
+                        needsReRender = true; 
+                    }
+                }
+            }
+            if(needsReRender) renderLinkGroups(searchInputGlobal.value);
+        });
+      }
+      loadLinkData(); 
+    });
+
+    function openEditUserModal(username, currentRole) {
+        const modal = document.getElementById('edit-user-modal');
+        document.getElementById('edit-username-original').value = username;
+        document.getElementById('edit-username-display').value = username;
+        document.getElementById('edit-password').value = '';
+        document.getElementById('edit-password-confirm').value = '';
+        document.getElementById('edit-role').value = currentRole;
+        document.getElementById('edit-user-message').textContent = '';
+        modal.classList.remove('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const editUserModal = document.getElementById('edit-user-modal');
+      const editUserForm = document.getElementById('edit-user-form');
+      const closeEditUserModalBtn = document.getElementById('close-edit-user-modal-btn');
+      const cancelEditUserBtn = document.getElementById('cancel-edit-user-btn');
+
+      if(closeEditUserModalBtn) {
+        closeEditUserModalBtn.addEventListener('click', () => editUserModal.classList.add('hidden'));
+      }
+      if(cancelEditUserBtn){
+        cancelEditUserBtn.addEventListener('click', () => editUserModal.classList.add('hidden'));
+      }
+
+      if(editUserForm){
+        editUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const originalUsername = document.getElementById('edit-username-original').value;
+            const password = document.getElementById('edit-password').value;
+            const passwordConfirm = document.getElementById('edit-password-confirm').value;
+            const role = document.getElementById('edit-role').value;
+            const editUserMessage = document.getElementById('edit-user-message');
+            editUserMessage.textContent = '';
+            editUserMessage.classList.remove('text-green-400', 'text-red-400');
+
+            if (password && password !== passwordConfirm) {
+                editUserMessage.textContent = '两次输入的密码不匹配。';
+                editUserMessage.classList.add('text-red-400');
+                return;
+            }
+
+            const payload = { role };
+            if (password) {
+                payload.password = password;
+            }
+
+            try {
+                const response = await fetch(`/api/users/${originalUsername}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    editUserMessage.textContent = result.message || '用户更新成功!';
+                    editUserMessage.classList.add('text-green-400');
+                    allUsersCache = []; // Force refetch of user list
+                    sessionStorage.removeItem('users_loaded_once_in_tab_session');
+                    loadAndRenderUsers(document.getElementById('search-input').value);
+                    setTimeout(() => { editUserModal.classList.add('hidden'); }, 1500);
+                } else {
+                    editUserMessage.textContent = `更新失败: ${result.message || '未知错误'}`;
+                    editUserMessage.classList.add('text-red-400');
+                }
+            } catch (err) {
+                editUserMessage.textContent = `更新用户时出错: ${err.message}`;
+                editUserMessage.classList.add('text-red-400');
+            }
+        });
+      }
+    });
+  </script>
+</body>
+</html> 

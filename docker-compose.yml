@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: ai_link_nav_app
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./data.json:/app/data.json
+      - ./users.json:/app/users.json
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=app.py
+      - FLASK_DEBUG=1
+    # command: ["flask", "run", "--host=0.0.0.0", "--port=5002"] 

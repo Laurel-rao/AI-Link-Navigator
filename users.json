@@ -1,0 +1,17 @@
+[
+  {
+    "username": "admin2",
+    "password_hash": "pbkdf2:sha256:260000$HeJgUaFs2BnXcZcI$bb999983fea19c9ec527cd201f9304f16b6310b549933d4b644e04d506a71c7b",
+    "role": "admin"
+  },
+  {
+    "username": "admin",
+    "password_hash": "pbkdf2:sha256:260000$36lUeLFuTTVuOE6Z$8f9dff0fcce321dc15c3d489a3e980482b4ba1a14264db97e0b932dd9d96c111",
+    "role": "admin"
+  },
+  {
+    "username": "user",
+    "password_hash": "pbkdf2:sha256:260000$VncJ93c6OGQ98S2K$1be3979ded1422cb1eae9ee8662988e2e741c1ea628a85bedfe378ef715e7b46",
+    "role": "user"
+  }
+]
