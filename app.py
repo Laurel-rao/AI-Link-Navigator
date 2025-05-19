@@ -8,13 +8,17 @@ import random
 import string
 from PIL import Image, ImageDraw, ImageFont # Pillow for image generation
 import io # For sending image data
+# 导入Firebase存储模块
+from firebase_storage import load_users, save_users, load_data, save_data, initialize_default_data
 
 app = Flask(__name__, static_folder='./')
-app.secret_key = os.urandom(24)  # Needed for Flask sessions
+# 为Vercel使用固定的密钥 - 在生产环境中应该使用环境变量存储
+app.secret_key = 'ai-navigator-secret-key-for-vercel'  
 CORS(app)
 
-DATA_FILE = os.path.join(app.root_path, 'data.json')
-USERS_FILE = os.path.join(app.root_path, 'users.json')
+# 在Vercel上使用的文件路径 - 仅用于本地备份
+DATA_FILE = 'data.json'
+USERS_FILE = 'users.json'
 
 # --- CAPTCHA Generation ---
 def generate_captcha_image(text_length=5):
@@ -70,34 +74,6 @@ def generate_captcha_image(text_length=5):
     image.save(img_byte_arr, format='PNG')
     img_byte_arr.seek(0)
     return text, img_byte_arr
-
-# --- User Data Management ---
-def load_users():
-    if not os.path.exists(USERS_FILE):
-        return []
-    try:
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
-            users = json.load(f)
-        # Initial password hashing if plaintext is present
-        updated = False
-        for user_data in users:
-            if "_password_plaintext_initial" in user_data and user_data["_password_plaintext_initial"]:
-                user_data["password_hash"] = generate_password_hash(user_data["_password_plaintext_initial"])
-                del user_data["_password_plaintext_initial"]
-                updated = True
-        if updated:
-            save_users(users) # Save back with hashed passwords
-        return users
-    except (IOError, json.JSONDecodeError) as e:
-        app.logger.error(f"Error loading users.json: {e}")
-        return []
-
-def save_users(users):
-    try:
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(users, f, ensure_ascii=False, indent=2)
-    except IOError as e:
-        app.logger.error(f"Error saving users.json: {e}")
 
 # --- Decorators ---
 def login_required(f):
@@ -211,7 +187,9 @@ def serve_admin_page():
 @app.route('/data.json')
 @login_required # All logged-in users can fetch data.json for display
 def serve_data_file():
-    return send_from_directory(app.root_path, 'data.json')
+    # 从Firebase获取数据并动态生成响应
+    data = load_data()
+    return jsonify(data)
 
 @app.route('/api/save-data', methods=['POST'])
 @admin_required # Only admins can save data
@@ -221,10 +199,12 @@ def save_data_api():
         if not content or 'groups' not in content or not isinstance(content['groups'], list):
             return jsonify({'error': '无效的数据格式'}), 400
         
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(content, f, ensure_ascii=False, indent=2)
-        
-        return jsonify({'success': True, 'message': '数据已保存'})
+        # 将数据保存到Firebase
+        success = save_data(content)
+        if success:
+            return jsonify({'success': True, 'message': '数据已保存'})
+        else:
+            return jsonify({'error': '保存到Firebase失败'}), 500
     except Exception as e:
         app.logger.error(f"Error saving data: {e}")
         return jsonify({'error': str(e)}), 500
@@ -321,24 +301,9 @@ def delete_user_api(username_to_delete):
 # Flask will automatically serve other static files from the 'static_folder' (root in this case)
 # if no specific route matches. login.html's CSS/JS (if any not from CDN) will be served this way.
 
+# 在Vercel上运行时使用这个初始化
+initialize_default_data()
+
+# 本地开发服务器
 if __name__ == '__main__':
-    # Initialize users.json if it doesn't exist or is empty, and hash initial passwords
-    current_users = load_users()
-    if not current_users:
-        # If load_users returned empty (e.g. file didn't exist or was invalid, and didn't have _password_plaintext_initial)
-        # Re-create with default admin/user if users.json is truly missing or empty
-        if not os.path.exists(USERS_FILE) or os.path.getsize(USERS_FILE) == 0:
-            print("Initializing default users in users.json...")
-            default_users_data = [
-                {"username": "admin", "_password_plaintext_initial": "A123456", "role": "admin"},
-                {"username": "user", "_password_plaintext_initial": "U123456", "role": "user"}
-            ]
-            # This will trigger hashing in the next load_users() call or if we call it directly
-            save_users(default_users_data) # Save plaintext first
-            load_users() # This call will hash and resave
-            print("Default users initialized and passwords hashed.")
-        
-    if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump({'groups': []}, f, ensure_ascii=False, indent=2)
-    app.run(debug=True, host='0.0.0.0', port=5002) 
+    app.run(debug=True, host='0.0.0.0')
