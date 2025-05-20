@@ -1,12 +1,12 @@
 [
   {
     "username": "admin",
-    "_password_plaintext_initial": "A123456",
-    "role": "admin"
+    "role": "admin",
+    "password_hash": "pbkdf2:sha256:260000$kJ9u9vTCgPULmarr$9351695516dbcf19ae5e96305be344231537ee2d78d1e3e47d7955cb484f6cf1"
   },
   {
     "username": "user",
-    "_password_plaintext_initial": "U123456",
-    "role": "user"
+    "role": "user",
+    "password_hash": "pbkdf2:sha256:260000$PxyLoSg4B0Kygujx$ad8f8356a5102a28f781d07a3bbefd047a4611931ac6ed506c1bef3ef7048c37"
   }
 ]
