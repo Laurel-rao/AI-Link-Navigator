@@ -1,7 +1,7 @@
 [
   {
     "username": "admin2",
-    "password_hash": "pbkdf2:sha256:260000$HeJgUaFs2BnXcZcI$bb999983fea19c9ec527cd201f9304f16b6310b549933d4b644e04d506a71c7b",
+    "password_hash": "pbkdf2:sha256:260000$ICNDgKN8Kq2SDi7y$bc9e794d7ccb093e7d4c8aa9f88956dc74bba9c3ae319a8f512ed44c4e5eb271",
     "role": "admin"
   },
   {
