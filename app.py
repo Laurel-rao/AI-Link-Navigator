@@ -21,7 +21,7 @@ def generate_captcha_image(text_length=5):
     text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=text_length))
 
     font = ImageFont.load_default()
-
+    font_size = 8
     image_width = text_length * (font_size // 2 + 10) # Approximate width
     image_height = font_size + 20
     image = Image.new('RGB', (image_width, image_height), color = (220, 220, 220)) # Light grey background
