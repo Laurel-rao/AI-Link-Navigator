@@ -19,26 +19,8 @@ USERS_FILE = os.path.join(app.root_path, 'users.json')
 # --- CAPTCHA Generation ---
 def generate_captcha_image(text_length=5):
     text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=text_length))
-    try:
-        # Try to use a common system font. Adjust path if needed for your environment.
-        font_path = "/System/Library/Fonts/Supplemental/Arial.ttf" # macOS common path
-        if not os.path.exists(font_path):
-             font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" # Linux common path
-        if not os.path.exists(font_path):
-             font_path = "arial.ttf" # Windows, assuming it's in a place Windows can find
-        
-        font_size = 30
-        try:
-            font = ImageFont.truetype(font_path, font_size)
-        except IOError:
-            font = ImageFont.load_default() # Fallback to default PIL font
-            # Manually adjust size if default font is too small/large (approximate)
-            # This is tricky as default font size isn't easily controlled like truetype.
-            # For a better experience, ensure a TTF font is available and correctly pathed.
 
-    except Exception as e:
-        app.logger.error(f"Font loading error for CAPTCHA: {e}")
-        font = ImageFont.load_default()
+    font = ImageFont.load_default()
 
     image_width = text_length * (font_size // 2 + 10) # Approximate width
     image_height = font_size + 20
