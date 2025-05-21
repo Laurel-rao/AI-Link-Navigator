@@ -88,8 +88,8 @@
           退出登录
         </a>
       </div>
-      <h1 class="text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mb-4">AI资源导航</h1>
-      <p class="text-slate-300 text-lg md:text-xl max-w-3xl mx-auto">前沿AI工具与资源的精选集合</p>
+      <h1 id="site-heading" class="text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mb-4">AI资源导航</h1>
+      <p id="site-subheading" class="text-slate-300 text-lg md:text-xl max-w-3xl mx-auto">前沿AI工具与资源的精选集合</p>
     </header>
 
     <main id="card-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -141,6 +141,23 @@
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        
+        // 更新页面标题和网站信息
+        if (data.settings) {
+          // 更新HTML标题
+          document.title = data.settings.site_title || document.title;
+          
+          // 更新页面主标题和副标题
+          const siteHeading = document.getElementById('site-heading');
+          if (siteHeading && data.settings.site_heading) {
+            siteHeading.textContent = data.settings.site_heading;
+          }
+          
+          const siteSubheading = document.getElementById('site-subheading');
+          if (siteSubheading && data.settings.site_subheading) {
+            siteSubheading.textContent = data.settings.site_subheading;
+          }
+        }
         
         if (data.groups && Array.isArray(data.groups)) {
             data.groups.sort((a, b) => (a.order || 0) - (b.order || 0));

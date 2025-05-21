@@ -98,6 +98,7 @@
       <div class="mb-6 border-b border-slate-700">
         <button class="tab-button active" data-tab="links-management">链接管理</button>
         <button class="tab-button" data-tab="users-management">用户管理</button>
+        <button class="tab-button" data-tab="settings-management">网站设置</button>
       </div>
 
       <!-- Tab Content -->
@@ -159,6 +160,43 @@
                 <p id="users-loading-message" class="text-slate-400" style="display: none;">正在加载用户...</p>
                 <p id="no-users-found-message" class="text-slate-400 text-center py-4 hidden">未找到用户。</p>
             </div>
+        </main>
+      </div>
+
+      <div id="settings-management" class="tab-content">
+        <main class="bg-slate-800 rounded-xl p-6">
+          <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-6">网站设置</h2>
+            <form id="settings-form" class="space-y-6">
+              <div>
+                <label for="site-title" class="block text-sm text-slate-400 mb-1">网站标题 (浏览器标签显示)</label>
+                <input type="text" id="site-title" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                <p class="text-xs text-slate-500 mt-1">当前值: <span id="current-site-title" class="text-slate-300 italic">加载中...</span></p>
+              </div>
+              <div>
+                <label for="site-heading" class="block text-sm text-slate-400 mb-1">网站主标题 (页面顶部)</label>
+                <input type="text" id="site-heading" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                <p class="text-xs text-slate-500 mt-1">当前值: <span id="current-site-heading" class="text-slate-300 italic">加载中...</span></p>
+              </div>
+              <div>
+                <label for="site-subheading" class="block text-sm text-slate-400 mb-1">网站副标题 (主标题下方)</label>
+                <input type="text" id="site-subheading" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                <p class="text-xs text-slate-500 mt-1">当前值: <span id="current-site-subheading" class="text-slate-300 italic">加载中...</span></p>
+              </div>
+              <div class="p-4 bg-slate-700/50 rounded-lg mt-4 mb-4">
+                <h3 class="text-md font-medium text-blue-400 mb-3">预览效果</h3>
+                <div class="bg-slate-900 p-4 rounded-lg">
+                  <h1 id="preview-heading" class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mb-2">AI资源导航</h1>
+                  <p id="preview-subheading" class="text-slate-300 text-sm">前沿AI工具与资源的精选集合</p>
+                </div>
+              </div>
+              <div>
+                <button type="submit" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white">保存设置</button>
+                <button type="button" id="test-settings-api" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 ml-2 rounded-lg text-white">测试加载API</button>
+                <p id="settings-message" class="mt-2 text-sm"></p>
+              </div>
+            </form>
+          </div>
         </main>
       </div>
 
@@ -229,6 +267,199 @@
   </template>
 
   <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 首先加载设置
+      if (typeof window.loadSettings === 'function') {
+        console.log("初始调用loadSettings...");
+        window.loadSettings().catch(err => console.error("初始加载设置失败:", err));
+      } else {
+        console.error("loadSettings函数不可用");
+      }
+
+      // 初始化实时预览函数
+      function initLivePreview() {
+        const siteTitleInput = document.getElementById('site-title');
+        const siteHeadingInput = document.getElementById('site-heading');
+        const siteSubheadingInput = document.getElementById('site-subheading');
+        const previewHeading = document.getElementById('preview-heading');
+        const previewSubheading = document.getElementById('preview-subheading');
+        
+        // 添加输入事件监听器
+        if (siteHeadingInput && previewHeading) {
+          siteHeadingInput.addEventListener('input', function() {
+            previewHeading.textContent = this.value || 'AI资源导航';
+          });
+        }
+        
+        if (siteSubheadingInput && previewSubheading) {
+          siteSubheadingInput.addEventListener('input', function() {
+            previewSubheading.textContent = this.value || '前沿AI工具与资源的精选集合';
+          });
+        }
+        
+        console.log("实时预览初始化完成");
+      }
+      
+      // 调用初始化函数
+      initLivePreview();
+
+      // 设置表单提交事件
+      const settingsForm = document.getElementById('settings-form');
+      if (settingsForm) {
+        console.log("设置表单提交事件初始化");
+        settingsForm.addEventListener('submit', async (e) => {
+          e.preventDefault(); // 确保阻止表单默认提交行为
+          console.log("提交设置表单");
+          
+          // 获取当前DOM元素的引用
+          const settingsMessage = document.getElementById('settings-message');
+          const siteTitleInput = document.getElementById('site-title');
+          const siteHeadingInput = document.getElementById('site-heading');
+          const siteSubheadingInput = document.getElementById('site-subheading');
+          
+          if (!settingsMessage || !siteTitleInput || !siteHeadingInput || !siteSubheadingInput) {
+            console.error("保存设置时找不到必要的DOM元素");
+            return;
+          }
+          
+          settingsMessage.textContent = '';
+          settingsMessage.className = 'mt-2 text-sm';
+          
+          try {
+            console.log("正在获取表单数据");
+            const settingsData = {
+              site_title: siteTitleInput.value,
+              site_heading: siteHeadingInput.value,
+              site_subheading: siteSubheadingInput.value
+            };
+            
+            console.log("提交数据到API:", settingsData);
+            const response = await fetch('/api/settings', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(settingsData)
+            });
+            
+            const result = await response.json();
+            console.log("API响应:", result);
+            
+            if (response.ok && result.success) {
+              settingsMessage.textContent = '设置已保存。';
+              settingsMessage.className = 'mt-2 text-sm text-green-400';
+              
+              // 更新当前值显示
+              document.getElementById('current-site-title').textContent = siteTitleInput.value;
+              document.getElementById('current-site-heading').textContent = siteHeadingInput.value;
+              document.getElementById('current-site-subheading').textContent = siteSubheadingInput.value;
+            } else {
+              throw new Error(result.message || '保存失败');
+            }
+          } catch (error) {
+            console.error('保存设置出错:', error);
+            settingsMessage.textContent = '保存设置失败: ' + error.message;
+            settingsMessage.className = 'mt-2 text-sm text-red-400';
+          }
+        });
+      } else {
+        console.error("无法找到设置表单元素");
+      }
+    });
+
+    // 加载设置 - 定义在全局作用域中
+    window.loadSettings = async function() {
+      console.log("开始加载设置...");
+      
+      // 确保DOM元素的引用
+      const siteTitleInput = document.getElementById('site-title');
+      const siteHeadingInput = document.getElementById('site-heading');
+      const siteSubheadingInput = document.getElementById('site-subheading');
+      const currentSiteTitleSpan = document.getElementById('current-site-title');
+      const currentSiteHeadingSpan = document.getElementById('current-site-heading');
+      const currentSiteSubheadingSpan = document.getElementById('current-site-subheading');
+      const previewHeading = document.getElementById('preview-heading');
+      const previewSubheading = document.getElementById('preview-subheading');
+      const settingsMessage = document.getElementById('settings-message');
+      
+      // 检查必需的DOM元素是否存在
+      if (!siteTitleInput || !siteHeadingInput || !siteSubheadingInput || 
+          !currentSiteTitleSpan || !currentSiteHeadingSpan || !currentSiteSubheadingSpan ||
+          !previewHeading || !previewSubheading) {
+        console.error("设置页面缺少必要的DOM元素");
+        if (settingsMessage) {
+          settingsMessage.textContent = '页面DOM元素错误，无法加载设置';
+          settingsMessage.className = 'mt-2 text-sm text-red-400';
+        }
+        return;
+      }
+      
+      // 默认设置值（如果API失败时使用）
+      const defaultSettings = {
+        site_title: 'AI导航 - 科技感链接导航',
+        site_heading: 'AI资源导航',
+        site_subheading: '前沿AI工具与资源的精选集合'
+      };
+      
+      try {
+        console.log("正在请求settings API...");
+        const response = await fetch('/api/settings');
+        console.log("收到settings API响应:", response.status, response.statusText);
+        
+        if (!response.ok) {
+          throw new Error(`加载设置失败: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("成功解析设置数据:", data);
+        
+        if (data.success && data.settings) {
+          const settings = data.settings;
+          console.log("获取到的设置:", settings);
+          
+          // 使用API返回的值填充输入框
+          siteTitleInput.value = settings.site_title || defaultSettings.site_title;
+          siteHeadingInput.value = settings.site_heading || defaultSettings.site_heading;
+          siteSubheadingInput.value = settings.site_subheading || defaultSettings.site_subheading;
+          
+          // 更新当前值显示
+          currentSiteTitleSpan.textContent = settings.site_title || defaultSettings.site_title;
+          currentSiteHeadingSpan.textContent = settings.site_heading || defaultSettings.site_heading;
+          currentSiteSubheadingSpan.textContent = settings.site_subheading || defaultSettings.site_subheading;
+          
+          // 更新预览
+          previewHeading.textContent = settings.site_heading || defaultSettings.site_heading;
+          previewSubheading.textContent = settings.site_subheading || defaultSettings.site_subheading;
+          
+          console.log("设置加载成功并已应用到页面");
+        } else {
+          console.warn("API返回成功但没有设置数据:", data);
+          throw new Error('API返回的数据格式不正确');
+        }
+      } catch (error) {
+        console.error('加载设置出错:', error);
+        if (settingsMessage) {
+          settingsMessage.textContent = '加载设置出错: ' + error.message;
+          settingsMessage.className = 'mt-2 text-sm text-red-400';
+        }
+        
+        // 出错时使用默认值
+        console.log("使用默认设置值");
+        siteTitleInput.value = defaultSettings.site_title;
+        siteHeadingInput.value = defaultSettings.site_heading;
+        siteSubheadingInput.value = defaultSettings.site_subheading;
+        
+        // 更新当前值显示
+        currentSiteTitleSpan.textContent = defaultSettings.site_title;
+        currentSiteHeadingSpan.textContent = defaultSettings.site_heading;
+        currentSiteSubheadingSpan.textContent = defaultSettings.site_subheading;
+        
+        // 更新预览
+        previewHeading.textContent = defaultSettings.site_heading;
+        previewSubheading.textContent = defaultSettings.site_subheading;
+      }
+    };
+
     async function fetchAdminUserInfo() {
         try {
             const response = await fetch('/api/user-info');
@@ -357,10 +588,9 @@
         const tabContents = document.querySelectorAll('.tab-content');
         const searchInput = document.getElementById('search-input');
         const saveChangesButton = document.getElementById('save-btn');
-        console.log("[SetupTabs] loadAndRenderUsers type:", typeof loadAndRenderUsers); // Debug line
 
         tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
+            button.addEventListener('click', async () => {
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
                 const targetTab = button.dataset.tab;
@@ -374,15 +604,54 @@
                     allUsersCache = [];
                     sessionStorage.removeItem('users_loaded_once_in_tab_session');
                     loadAndRenderUsers(searchInput.value);
+                } else if (targetTab === 'settings-management') {
+                    searchInput.placeholder = '搜索设置...';
+                    if (saveChangesButton) saveChangesButton.parentElement.style.display = 'none';
+                    console.log("[Settings Tab Click] 开始加载设置...");
+                    // 先手动清空当前输入框
+                    document.getElementById('site-title').value = '';
+                    document.getElementById('site-heading').value = '';
+                    document.getElementById('site-subheading').value = '';
+                    // 显示加载中状态
+                    document.getElementById('current-site-title').textContent = '加载中...';
+                    document.getElementById('current-site-heading').textContent = '加载中...';
+                    document.getElementById('current-site-subheading').textContent = '加载中...';
+                    
+                    // 确保loadSettings函数存在并调用
+                    if (typeof window.loadSettings === 'function') {
+                        window.loadSettings().catch(err => {
+                            console.error("[Settings Tab Click] 加载设置时出错:", err);
+                            // 显示错误消息
+                            const settingsMessage = document.getElementById('settings-message');
+                            if (settingsMessage) {
+                                settingsMessage.textContent = '加载设置失败: ' + err.message;
+                                settingsMessage.className = 'mt-2 text-sm text-red-400';
+                            }
+                        });
+                    } else {
+                        console.error("[Settings Tab Click] loadSettings函数不可用");
+                    }
                 } else {
                     searchInput.placeholder = '搜索分组或链接...';
                     if (saveChangesButton) saveChangesButton.parentElement.style.display = 'block';
                 }
             });
         });
-        // Initial call if users tab is active by default (it's not, but good practice)
+        
+        // 初始调用：如果用户管理标签是默认活动的，加载用户数据
         if (document.querySelector('.tab-button[data-tab="users-management"].active')){
             loadAndRenderUsers();
+        }
+        
+        // 初始调用：如果设置标签是默认活动的，加载设置
+        if (document.querySelector('.tab-button[data-tab="settings-management"].active')){
+            console.log("[InitialLoad] 加载设置...");
+            // 立即调用，不等待
+            if (typeof window.loadSettings === 'function') {
+                window.loadSettings().catch(err => console.error("[InitialLoad] 初始加载设置失败:", err));
+            } else {
+                console.error("[InitialLoad] loadSettings函数不可用");
+            }
         }
     }
 
@@ -399,9 +668,13 @@
       adminContentWrapper.style.display = 'block';
       authFailedMessage.style.display = 'none';
 
-      // Define all functions that might be called by event listeners or other functions here
-      // Ensure loadAndRenderUsers is defined before setupTabs, which sets up listeners that call it.
-      // (Moved loadAndRenderUsers to global scope just above setupTabs for clarity and to ensure availability)
+      // 确保所有表单元素已初始化
+      // 设置表单元素 - 在这里全局定义，以便其他函数可以访问
+      window.settingsForm = document.getElementById('settings-form');
+      window.siteTitleInput = document.getElementById('site-title');
+      window.siteHeadingInput = document.getElementById('site-heading');
+      window.siteSubheadingInput = document.getElementById('site-subheading');
+      window.settingsMessage = document.getElementById('settings-message');
 
       setupTabs();
 
@@ -736,6 +1009,31 @@
         });
       }
       loadLinkData();
+
+      // 添加API测试按钮事件
+      document.getElementById('test-settings-api').addEventListener('click', async () => {
+        try {
+          console.log("手动测试settings API...");
+          const response = await fetch('/api/settings');
+          console.log("手动测试API响应:", response.status, response.statusText);
+          
+          if (!response.ok) {
+            console.error("API请求失败:", response.status, response.statusText);
+            document.getElementById('settings-message').textContent = `API请求失败: ${response.status} ${response.statusText}`;
+            document.getElementById('settings-message').className = 'mt-2 text-sm text-red-400';
+            return;
+          }
+          
+          const data = await response.json();
+          console.log("手动测试API返回数据:", data);
+          document.getElementById('settings-message').textContent = "API测试成功，查看控制台输出结果";
+          document.getElementById('settings-message').className = 'mt-2 text-sm text-green-400';
+        } catch (error) {
+          console.error("手动测试API出错:", error);
+          document.getElementById('settings-message').textContent = `测试失败: ${error.message}`;
+          document.getElementById('settings-message').className = 'mt-2 text-sm text-red-400';
+        }
+      });
     });
 
     function openEditUserModal(username, currentRole) {

@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont # Pillow for image generation
 import io # For sending image data
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
-from models import db, User, Group, Link, init_db, import_data_from_json
+from models import db, User, Group, Link, Setting, init_db, import_data_from_json
 
 # 根据环境变量加载不同的 .env 文件
 ENV = os.environ.get("FLASK_ENV", "production")
@@ -204,8 +204,15 @@ def get_data_api():
     try:
         # 从数据库获取所有组及其关联的链接
         groups = Group.query.order_by(Group.order).all()
+        
+        # 获取网站设置
+        settings = {}
+        for setting in Setting.query.all():
+            settings[setting.key] = setting.value
+            
         data = {
-            'groups': [group.to_dict() for group in groups]
+            'groups': [group.to_dict() for group in groups],
+            'settings': settings
         }
         return jsonify(data)
     except Exception as e:
@@ -386,11 +393,69 @@ def delete_user_api(username_to_delete):
         app.logger.error(f"Error deleting user: {e}")
         return jsonify({'success': False, 'message': f'删除用户时出错: {str(e)}'}), 500
 
+# 添加网站设置API
+@app.route('/api/settings', methods=['GET'])
+@login_required
+def get_settings_api():
+    try:
+        all_settings = Setting.query.all()
+        settings_data = {setting.key: setting.value for setting in all_settings}
+        settings_with_meta = [setting.to_dict() for setting in all_settings]
+        
+        return jsonify({
+            'success': True, 
+            'settings': settings_data,
+            'settings_meta': settings_with_meta
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching settings: {e}")
+        return jsonify({'success': False, 'message': f'获取设置时出错: {str(e)}'}), 500
+
+@app.route('/api/settings', methods=['POST'])
+@admin_required
+def update_settings_api():
+    if not request.is_json:
+        return jsonify({'success': False, 'message': '无效的请求格式，需要JSON'}), 400
+    
+    settings_to_update = request.json
+    
+    try:
+        for key, value in settings_to_update.items():
+            Setting.set_value(key, value)
+            
+        return jsonify({'success': True, 'message': '设置已更新'})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating settings: {e}")
+        return jsonify({'success': False, 'message': f'更新设置时出错: {str(e)}'}), 500
+
 # 确保数据库和表已创建，并导入初始数据
 @app.before_first_request
 def before_first_request():
     # 导入初始数据（仅当数据库为空时）
     import_data_from_json(app, DATA_FILE, USERS_FILE)
+    
+    # 确保设置数据存在
+    with app.app_context():
+        # 检查设置是否存在，如果不存在则创建默认设置
+        default_settings = [
+            {'key': 'site_title', 'value': 'AI导航 - 科技感链接导航', 'description': '网站标题（浏览器标签显示）'},
+            {'key': 'site_heading', 'value': 'AI资源导航', 'description': '网站主标题（页面顶部显示）'},
+            {'key': 'site_subheading', 'value': '前沿AI工具与资源的精选集合', 'description': '网站副标题（主标题下方）'}
+        ]
+        
+        for setting in default_settings:
+            existing = Setting.query.filter_by(key=setting['key']).first()
+            if not existing:
+                app.logger.info(f"创建默认设置: {setting['key']} = {setting['value']}")
+                db.session.add(Setting(
+                    key=setting['key'],
+                    value=setting['value'],
+                    description=setting['description']
+                ))
+                
+        db.session.commit()
+        app.logger.info("默认设置检查完成")
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5555)

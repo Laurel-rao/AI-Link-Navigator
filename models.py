@@ -84,6 +84,41 @@ class Link(db.Model):
             'order': self.order
         }
 
+class Setting(db.Model):
+    __tablename__ = 'settings'
+    
+    key = db.Column(db.String(50), primary_key=True)
+    value = db.Column(db.Text, nullable=True)
+    description = db.Column(db.String(255), nullable=True)
+    
+    def to_dict(self):
+        """将设置对象转换为字典"""
+        return {
+            'key': self.key,
+            'value': self.value,
+            'description': self.description
+        }
+    
+    @classmethod
+    def get_value(cls, key, default=None):
+        """获取设置值，如果不存在则返回默认值"""
+        setting = cls.query.filter_by(key=key).first()
+        return setting.value if setting else default
+    
+    @classmethod
+    def set_value(cls, key, value, description=None):
+        """设置值，如果键不存在则创建"""
+        setting = cls.query.filter_by(key=key).first()
+        if setting:
+            setting.value = value
+            if description:
+                setting.description = description
+        else:
+            setting = cls(key=key, value=value, description=description)
+            db.session.add(setting)
+        db.session.commit()
+        return setting
+
 def init_db(app):
     """初始化数据库，自动回退到SQLite如果PostgreSQL连接失败"""
     db.init_app(app)
@@ -166,6 +201,21 @@ def import_data_from_json(app, data_file_path, users_file_path):
                         group_id=group.id
                     )
                     db.session.add(link)
+                    
+            # 添加默认设置
+            default_settings = [
+                {'key': 'site_title', 'value': 'AI导航 - 科技感链接导航', 'description': '网站标题'},
+                {'key': 'site_heading', 'value': 'AI资源导航', 'description': '网站主标题'},
+                {'key': 'site_subheading', 'value': '前沿AI工具与资源的精选集合', 'description': '网站副标题'}
+            ]
+            
+            for setting in default_settings:
+                if not Setting.query.filter_by(key=setting['key']).first():
+                    db.session.add(Setting(
+                        key=setting['key'],
+                        value=setting['value'],
+                        description=setting['description']
+                    ))
                     
             db.session.commit()
             logger.info("数据导入成功")
