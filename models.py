@@ -3,6 +3,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from dotenv import load_dotenv
 import datetime
+import logging
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # 加载环境变量
 load_dotenv()
@@ -80,11 +85,34 @@ class Link(db.Model):
         }
 
 def init_db(app):
-    """初始化数据库"""
+    """初始化数据库，自动回退到SQLite如果PostgreSQL连接失败"""
     db.init_app(app)
     
-    with app.app_context():
-        db.create_all()
+    try:
+        logger.info(f"尝试连接数据库: {app.config['SQLALCHEMY_DATABASE_URI']}")
+        
+        with app.app_context():
+            # 尝试连接数据库并创建表
+            db.engine.connect()
+            logger.info("数据库连接成功，创建表...")
+            db.create_all()
+            logger.info("数据库表创建成功")
+            
+    except Exception as e:
+        logger.error(f"PostgreSQL数据库操作失败: {str(e)}")
+        logger.info("自动回退到SQLite数据库...")
+        
+        # 修改配置，使用SQLite数据库
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ailink.db'
+        logger.info(f"现在使用SQLite数据库: {app.config['SQLALCHEMY_DATABASE_URI']}")
+        
+        # 重新初始化数据库连接
+        db.init_app(app)
+        
+        with app.app_context():
+            # 重新创建表
+            db.create_all()
+            logger.info("SQLite数据库表创建成功")
         
 def import_data_from_json(app, data_file_path, users_file_path):
     """从JSON文件导入数据到数据库"""
@@ -92,11 +120,16 @@ def import_data_from_json(app, data_file_path, users_file_path):
     
     with app.app_context():
         # 检查数据库是否已有数据
-        if User.query.count() > 0 or Group.query.count() > 0:
-            return False  # 数据库已有数据，不导入
+        try:
+            if User.query.count() > 0 or Group.query.count() > 0:
+                logger.info("数据库已有数据，跳过导入")
+                return False  # 数据库已有数据，不导入
+        except Exception as e:
+            logger.error(f"检查数据库数据时出错: {str(e)}")
             
         # 导入用户数据
         try:
+            logger.info(f"从 {users_file_path} 导入用户数据")
             with open(users_file_path, 'r', encoding='utf-8') as f:
                 users_data = json.load(f)
                 
@@ -107,7 +140,8 @@ def import_data_from_json(app, data_file_path, users_file_path):
                     role=user_data['role']
                 )
                 db.session.add(user)
-                
+            
+            logger.info(f"从 {data_file_path} 导入组和链接数据")
             # 导入分组和链接数据
             with open(data_file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -134,9 +168,10 @@ def import_data_from_json(app, data_file_path, users_file_path):
                     db.session.add(link)
                     
             db.session.commit()
+            logger.info("数据导入成功")
             return True
             
         except Exception as e:
             db.session.rollback()
-            print(f"导入数据错误: {str(e)}")
+            logger.error(f"导入数据错误: {str(e)}")
             return False 

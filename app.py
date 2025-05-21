@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from models import db, User, Group, Link, init_db, import_data_from_json
 
 # 根据环境变量加载不同的 .env 文件
-ENV = os.environ.get("FLASK_ENV", "testing")
+ENV = os.environ.get("FLASK_ENV", "production")
 print(f"当前环境: {ENV}")
 
 # 加载对应环境的配置文件
