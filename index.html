@@ -132,7 +132,7 @@
       }
 
       try {
-        const response = await fetch('data.json?' + new Date().getTime()); 
+        const response = await fetch('/api/data?' + new Date().getTime()); 
         if (!response.ok) {
             if (response.status === 401 || response.status === 403) { 
                 window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);

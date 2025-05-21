@@ -268,7 +268,12 @@
                 const response = await fetch('/api/users');
                 console.log("[UserMgmt] Fetch response status:", response.status);
                 if (!response.ok) throw new Error('Failed to fetch users: ' + response.statusText);
-                allUsersCache = await response.json();
+                const responseData = await response.json();
+                if (responseData.success && Array.isArray(responseData.users)) {
+                    allUsersCache = responseData.users;
+                } else {
+                    throw new Error('Invalid API response format');
+                }
                 sessionStorage.setItem('users_loaded_once_in_tab_session', 'true');
                 newFetchPerformed = true;
                 console.log("[UserMgmt] Users fetched and cached:", JSON.parse(JSON.stringify(allUsersCache)));
@@ -366,6 +371,8 @@
                     searchInput.placeholder = '按用户名或角色搜索...';
                     if (saveChangesButton) saveChangesButton.parentElement.style.display = 'none';
                     console.log("[UserMgmt Tab Click] User management tab activated. Cache length:", allUsersCache.length);
+                    allUsersCache = [];
+                    sessionStorage.removeItem('users_loaded_once_in_tab_session');
                     loadAndRenderUsers(searchInput.value);
                 } else {
                     searchInput.placeholder = '搜索分组或链接...';
@@ -414,12 +421,19 @@
 
       if(showAddUserFormBtn){
         showAddUserFormBtn.addEventListener('click', () => {
-            addUserFormContainer.style.display = addUserFormContainer.style.display === 'none' ? 'block' : 'none';
-            if(addUserFormContainer.style.display === 'block') addUserForm.reset(); addUserMessage.textContent = '';
+            if(addUserFormContainer) {
+                addUserFormContainer.classList.toggle('hidden');
+                if(!addUserFormContainer.classList.contains('hidden')) {
+                    if(addUserForm) addUserForm.reset();
+                    if(addUserMessage) addUserMessage.textContent = '';
+                }
+            }
         });
       }
       if(closeAddUserFormBtn){
-        closeAddUserFormBtn.addEventListener('click', () => addUserFormContainer.style.display = 'none');
+        closeAddUserFormBtn.addEventListener('click', () => {
+            if(addUserFormContainer) addUserFormContainer.classList.add('hidden');
+        });
       }
 
       if (addUserForm) {
@@ -445,7 +459,7 @@
                     allUsersCache = [];
                     sessionStorage.removeItem('users_loaded_once_in_tab_session');
                     loadAndRenderUsers(searchInputGlobal.value);
-                    addUserFormContainer.style.display = 'none';
+                    addUserFormContainer.classList.add('hidden');
                 } else {
                     addUserMessage.textContent = `创建失败: ${result.message || '未知错误'}`;
                     addUserMessage.classList.add('text-red-400');
@@ -459,7 +473,7 @@
 
       async function loadLinkData() {
           try {
-            const response = await fetch('data.json?' + new Date().getTime());
+            const response = await fetch('/api/data?' + new Date().getTime());
             if (!response.ok) {
                  if (response.status === 401 || response.status === 403) {
                     window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
@@ -716,10 +730,14 @@
       const cancelEditUserBtn = document.getElementById('cancel-edit-user-btn');
 
       if(closeEditUserModalBtn) {
-        closeEditUserModalBtn.addEventListener('click', () => editUserModal.classList.add('hidden'));
+        closeEditUserModalBtn.addEventListener('click', () => {
+            if(editUserModal) editUserModal.classList.add('hidden');
+        });
       }
       if(cancelEditUserBtn){
-        cancelEditUserBtn.addEventListener('click', () => editUserModal.classList.add('hidden'));
+        cancelEditUserBtn.addEventListener('click', () => {
+            if(editUserModal) editUserModal.classList.add('hidden');
+        });
       }
 
       if(editUserForm){

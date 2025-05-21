@@ -8,10 +8,39 @@ import random
 import string
 from PIL import Image, ImageDraw, ImageFont # Pillow for image generation
 import io # For sending image data
+from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
+from models import db, User, Group, Link, init_db, import_data_from_json
+
+# 根据环境变量加载不同的 .env 文件
+ENV = os.environ.get("FLASK_ENV", "testing")
+print(f"当前环境: {ENV}")
+
+# 加载对应环境的配置文件
+if ENV == "production":
+    print("加载生产环境配置...")
+    load_dotenv(".env.production", override=True)
+elif ENV == "testing":
+    print("加载测试环境配置...")
+    load_dotenv(".env.testing", override=True)
+else:
+    print("加载开发环境配置...")
+    load_dotenv(".env.development", override=True)
+
+print("DATABASE_URL: ", os.environ.get('DATABASE_URL'))
+print("SECRET_KEY: ", os.environ.get('SECRET_KEY'))
+print("DEBUG: ", os.environ.get('DEBUG'))
 
 app = Flask(__name__, static_folder='./')
-app.secret_key = os.urandom(24)  # Needed for Flask sessions
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/ailinkdb')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['DEBUG'] = os.environ.get('DEBUG', 'False').lower() == 'true'
+
 CORS(app)
+
+# 初始化数据库
+init_db(app)
 
 DATA_FILE = os.path.join(app.root_path, 'data.json')
 USERS_FILE = os.path.join(app.root_path, 'users.json')
@@ -52,34 +81,6 @@ def generate_captcha_image(text_length=5):
     image.save(img_byte_arr, format='PNG')
     img_byte_arr.seek(0)
     return text, img_byte_arr
-
-# --- User Data Management ---
-def load_users():
-    if not os.path.exists(USERS_FILE):
-        return []
-    try:
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
-            users = json.load(f)
-        # Initial password hashing if plaintext is present
-        updated = False
-        for user_data in users:
-            if "_password_plaintext_initial" in user_data and user_data["_password_plaintext_initial"]:
-                user_data["password_hash"] = generate_password_hash(user_data["_password_plaintext_initial"])
-                del user_data["_password_plaintext_initial"]
-                updated = True
-        if updated:
-            save_users(users) # Save back with hashed passwords
-        return users
-    except (IOError, json.JSONDecodeError) as e:
-        app.logger.error(f"Error loading users.json: {e}")
-        return []
-
-def save_users(users):
-    try:
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(users, f, ensure_ascii=False, indent=2)
-    except IOError as e:
-        app.logger.error(f"Error saving users.json: {e}")
 
 # --- Decorators ---
 def login_required(f):
@@ -139,13 +140,13 @@ def handle_login_api():
                 # 'captcha_text' removed, client will refresh image
             }), 400 
 
-    users = load_users()
-    user_data = next((u for u in users if u["username"] == username), None)
+    # 使用数据库查询用户
+    user = User.query.filter_by(username=username).first()
 
-    if user_data and check_password_hash(user_data.get("password_hash", ""), password):
+    if user and user.check_password(password):
         session['logged_in'] = True
         session['username'] = username
-        session['role'] = user_data['role']
+        session['role'] = user.role
         session.pop('require_captcha', None)
         session.pop('captcha_answer', None)
         session.pop('failed_login_attempts', None) # Clear attempts on success
@@ -197,10 +198,19 @@ def serve_index():
 def serve_admin_page():
     return send_from_directory(app.static_folder, 'admin.html')
 
-@app.route('/data.json')
-@login_required # All logged-in users can fetch data.json for display
-def serve_data_file():
-    return send_from_directory(app.static_folder, 'data.json')
+@app.route('/api/data')
+@login_required # All logged-in users can fetch data for display
+def get_data_api():
+    try:
+        # 从数据库获取所有组及其关联的链接
+        groups = Group.query.order_by(Group.order).all()
+        data = {
+            'groups': [group.to_dict() for group in groups]
+        }
+        return jsonify(data)
+    except Exception as e:
+        app.logger.error(f"Error fetching data: {e}")
+        return jsonify({'success': False, 'message': f'获取数据时出错: {str(e)}'}), 500
 
 @app.route('/api/save-data', methods=['POST'])
 @admin_required # Only admins can save data
@@ -211,10 +221,45 @@ def save_data_api():
     data_to_save = request.json
     
     try:
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data_to_save, f, ensure_ascii=False, indent=2)
+        # 开始事务
+        db.session.begin()
+        
+        # 先删除所有链接，然后再删除所有组，避免外键约束错误
+        Link.query.delete()
+        db.session.flush()
+        
+        # 删除所有现有组
+        Group.query.delete()
+        db.session.flush()
+        
+        # 添加新组和链接
+        for group_data in data_to_save.get('groups', []):
+            group = Group(
+                id=group_data['id'],
+                title=group_data['title'],
+                description=group_data['description'],
+                order=group_data['order']
+            )
+            db.session.add(group)
+            db.session.flush()  # 确保组ID可用
+            
+            # 添加组下的链接
+            for link_data in group_data.get('links', []):
+                link = Link(
+                    id=link_data['id'],
+                    title=link_data['title'],
+                    url=link_data['url'],
+                    description=link_data['description'],
+                    order=link_data['order'],
+                    group_id=group.id
+                )
+                db.session.add(link)
+        
+        # 提交事务
+        db.session.commit()
         return jsonify({'success': True, 'message': '数据保存成功'})
     except Exception as e:
+        db.session.rollback()
         app.logger.error(f"Error saving data: {e}")
         return jsonify({'success': False, 'message': f'保存数据时出错: {str(e)}'}), 500
 
@@ -223,9 +268,13 @@ def save_data_api():
 @app.route('/api/users', methods=['GET'])
 @admin_required
 def get_all_users():
-    users = load_users()
-    safe_users = [{k: v for k, v in user.items() if k != 'password_hash'} for user in users] # Remove password hashes
-    return jsonify({'success': True, 'users': safe_users})
+    try:
+        users = User.query.all()
+        safe_users = [user.to_dict() for user in users]  # 默认排除密码哈希
+        return jsonify({'success': True, 'users': safe_users})
+    except Exception as e:
+        app.logger.error(f"Error getting users: {e}")
+        return jsonify({'success': False, 'message': f'获取用户列表时出错: {str(e)}'}), 500
 
 @app.route('/api/users', methods=['POST'])
 @admin_required
@@ -242,133 +291,106 @@ def create_user_api():
     if role not in ['admin', 'user']:
         return jsonify({'success': False, 'message': '无效的角色，必须是 "admin" 或 "user"'}), 400
     
-    users = load_users()
-    
-    # Check if username already exists
-    if any(u['username'] == username for u in users):
+    # 检查用户名是否已存在
+    if User.query.filter_by(username=username).first():
         return jsonify({'success': False, 'message': f'用户名 "{username}" 已存在'}), 400
     
-    # Create new user
-    new_user = {
-        'username': username,
-        'password_hash': generate_password_hash(password),
-        'role': role
-    }
-    
-    users.append(new_user)
-    save_users(users)
-    
-    return jsonify({
-        'success': True, 
-        'message': f'用户 "{username}" 创建成功', 
-        'user': {'username': username, 'role': role}
-    })
+    try:
+        # 创建新用户
+        new_user = User(username=username, role=role)
+        new_user.set_password(password)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'用户 "{username}" 创建成功', 
+            'user': new_user.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating user: {e}")
+        return jsonify({'success': False, 'message': f'创建用户时出错: {str(e)}'}), 500
 
 @app.route('/api/users/<string:username_to_edit>', methods=['PUT'])
 @admin_required
 def update_user_api(username_to_edit):
-    # This is a simplified example; in production you'd have more validation and error handling
     req_data = request.json
     new_password = req_data.get('password')
     new_role = req_data.get('role')
     
-    users = load_users()
-    user_index = None
+    # 查找用户
+    user_to_edit = User.query.filter_by(username=username_to_edit).first()
     
-    # Find the user index
-    for i, user in enumerate(users):
-        if user['username'] == username_to_edit:
-            user_index = i
-            break
-    
-    if user_index is None:
+    if not user_to_edit:
         return jsonify({'success': False, 'message': f'用户 "{username_to_edit}" 不存在'}), 404
     
-    # Check if trying to downgrade the last admin
-    if users[user_index]['role'] == 'admin' and new_role == 'user':
-        admin_count = sum(1 for u in users if u['role'] == 'admin')
-        if admin_count <= 1:
-            return jsonify({'success': False, 'message': '无法降级唯一的管理员账号'}), 400
-    
-    # Check if trying to modify the current user's role
-    if username_to_edit == session.get('username') and new_role == 'user' and users[user_index]['role'] == 'admin':
-        return jsonify({'success': False, 'message': '无法降级当前登录的管理员账号'}), 400
-    
-    # Update user data
-    if new_password:
-        users[user_index]['password_hash'] = generate_password_hash(new_password)
-    
-    if new_role and new_role in ['admin', 'user']:
-        users[user_index]['role'] = new_role
-    
-    save_users(users)
-    
-    return jsonify({
-        'success': True, 
-        'message': f'用户 "{username_to_edit}" 更新成功',
-        'user': {'username': username_to_edit, 'role': users[user_index]['role']}
-    })
+    try:
+        # 检查是否尝试降级最后一个管理员
+        if user_to_edit.role == 'admin' and new_role == 'user':
+            admin_count = User.query.filter_by(role='admin').count()
+            if admin_count <= 1:
+                return jsonify({'success': False, 'message': '无法降级唯一的管理员账号'}), 400
+        
+        # 检查是否尝试修改当前用户的角色
+        if username_to_edit == session.get('username') and new_role == 'user' and user_to_edit.role == 'admin':
+            return jsonify({'success': False, 'message': '无法降级当前登录的管理员账号'}), 400
+        
+        # 更新用户数据
+        if new_password:
+            user_to_edit.set_password(new_password)
+        
+        if new_role and new_role in ['admin', 'user']:
+            user_to_edit.role = new_role
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'用户 "{username_to_edit}" 更新成功',
+            'user': user_to_edit.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating user: {e}")
+        return jsonify({'success': False, 'message': f'更新用户时出错: {str(e)}'}), 500
 
 @app.route('/api/users/<string:username_to_delete>', methods=['DELETE'])
 @admin_required
 def delete_user_api(username_to_delete):
-    users = load_users()
-    user_to_delete = None
-    
-    # Find the user
-    for user in users:
-        if user['username'] == username_to_delete:
-            user_to_delete = user
-            break
+    # 查找用户
+    user_to_delete = User.query.filter_by(username=username_to_delete).first()
     
     if not user_to_delete:
         return jsonify({'success': False, 'message': f'用户 "{username_to_delete}" 不存在'}), 404
     
-    # Cannot delete the current user
+    # 无法删除当前用户
     if username_to_delete == session.get('username'):
         return jsonify({'success': False, 'message': '无法删除当前登录的用户'}), 400
     
-    # Check if trying to delete the last admin
-    if user_to_delete['role'] == 'admin':
-        admin_count = sum(1 for u in users if u['role'] == 'admin')
-        if admin_count <= 1:
-            return jsonify({'success': False, 'message': '无法删除唯一的管理员账号'}), 400
-    
-    # Remove the user
-    users = [u for u in users if u['username'] != username_to_delete]
-    save_users(users)
-    
-    return jsonify({'success': True, 'message': f'用户 "{username_to_delete}" 已删除'})
-
-# Initialize default users if users.json is empty or doesn't exist
-def initialize_default_users():
     try:
-        if not os.path.exists(USERS_FILE) or os.path.getsize(USERS_FILE) == 0:
-            app.logger.info('Initializing default users in users.json')
-            default_users = [
-                {
-                    'username': 'admin',
-                    '_password_plaintext_initial': 'A123456',  # This will be hashed on first load
-                    'role': 'admin'
-                },
-                {
-                    'username': 'user',
-                    '_password_plaintext_initial': 'U123456',  # This will be hashed on first load
-                    'role': 'user'
-                }
-            ]
-            with open(USERS_FILE, 'w', encoding='utf-8') as f:
-                json.dump(default_users, f, ensure_ascii=False, indent=2)
-            app.logger.info('Default users created successfully')
+        # 检查是否尝试删除最后一个管理员
+        if user_to_delete.role == 'admin':
+            admin_count = User.query.filter_by(role='admin').count()
+            if admin_count <= 1:
+                return jsonify({'success': False, 'message': '无法删除唯一的管理员账号'}), 400
+        
+        # 删除用户
+        db.session.delete(user_to_delete)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': f'用户 "{username_to_delete}" 已删除'})
     except Exception as e:
-        app.logger.error(f'Error initializing users.json: {e}')
+        db.session.rollback()
+        app.logger.error(f"Error deleting user: {e}")
+        return jsonify({'success': False, 'message': f'删除用户时出错: {str(e)}'}), 500
 
-# Ensure users.json exists with default users before the first request
+# 确保数据库和表已创建，并导入初始数据
 @app.before_first_request
 def before_first_request():
-    initialize_default_users()
-    # Load users immediately to hash any plaintext passwords
-    load_users()
+    # 导入初始数据（仅当数据库为空时）
+    import_data_from_json(app, DATA_FILE, USERS_FILE)
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=5555)
