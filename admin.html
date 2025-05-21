@@ -485,9 +485,19 @@
 
             if(loadedData.groups && Array.isArray(loadedData.groups)) {
                 loadedData.groups.forEach((g, i) => {
+                    // 确保每个组有ID
+                    if (!g.id) {
+                        g.id = 'group_' + Date.now() + '_' + i + '_' + Math.floor(Math.random() * 1000);
+                    }
                     g.order = g.order === undefined ? i : parseInt(g.order, 10);
                     if(g.links && Array.isArray(g.links)){
-                        g.links.forEach((l, j) => l.order = l.order === undefined ? j : parseInt(l.order, 10));
+                        g.links.forEach((l, j) => {
+                            // 确保每个链接有ID
+                            if (!l.id) {
+                                l.id = 'link_' + Date.now() + '_' + j + '_' + Math.floor(Math.random() * 1000);
+                            }
+                            l.order = l.order === undefined ? j : parseInt(l.order, 10);
+                        });
                     }
                 });
             }
@@ -583,7 +593,15 @@
           const groupData = linkDataGlobal.groups[groupIndexInData];
           if(!groupData.links) groupData.links = [];
           const newOrder = groupData.links.length > 0 ? Math.max(...groupData.links.map(l => l.order || 0)) + 1 : 0;
-          const newLink = { title: '新链接', url: 'https://', description: '', order: newOrder };
+          // 生成唯一ID
+          const linkId = 'link_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+          const newLink = { 
+            id: linkId,
+            title: '新链接', 
+            url: 'https://', 
+            description: '', 
+            order: newOrder 
+          };
           groupData.links.push(newLink);
           renderLinkGroups(searchInputGlobal.value);
         });
@@ -625,7 +643,15 @@
       if(addGroupBtn) {
         addGroupBtn.addEventListener('click', () => {
             const newOrder = linkDataGlobal.groups.length > 0 ? Math.max(...linkDataGlobal.groups.map(g => g.order || 0)) + 1 : 0;
-            const newGroup = { title: '新分组', description: '这是新分组的描述。', order: newOrder, links: [] };
+            // 生成唯一ID
+            const groupId = 'group_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            const newGroup = { 
+              id: groupId,
+              title: '新分组', 
+              description: '这是新分组的描述。', 
+              order: newOrder, 
+              links: [] 
+            };
             linkDataGlobal.groups.push(newGroup);
             renderLinkGroups(searchInputGlobal.value);
             const lastGroupElement = groupsContainer.querySelector('.group-item:last-child');
@@ -649,7 +675,7 @@
                 alert('链接数据保存成功！');
             } else {
                 const errorData = await response.json();
-                alert(`链接数据保存失败！${errorData.error || '服务器错误'}`);
+                alert(`链接数据保存失败！${errorData.message || '服务器错误'}`);
             }
             } catch (error) {
             console.error('保存链接数据出错:', error);
