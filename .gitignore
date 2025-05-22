@@ -87,7 +87,7 @@ celerybeat-schedule
 *.sage.py
 
 # Environments
-.env
+.env*
 .venv
 env/
 venv/
@@ -120,5 +120,32 @@ dmypy.json
 # PyCharm
 .idea/
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Docker
+.docker/
+docker-compose.override.yml
+*.env
+
 # Project specific
 users.json
+data/
+*.db
+*.sqlite3
+cookies.txt
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# System
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
