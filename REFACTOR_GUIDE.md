@@ -2,255 +2,366 @@
 
 ## 项目概述
 
-AI-Link-Navigator 是一个基于 Python Flask 的 Web 应用程序，用于管理和导航 AI 相关资源。本文档旨在指导开发者使用其他编程语言重新实现该系统。
+AI-Link-Navigator 是一个基于 Python Flask 的 Web 应用程序，用于管理和导航 AI 相关资源。本文档旨在指导开发者使用现代技术栈重新实现该系统。
 
 ## 系统架构
 
 ### 当前技术栈
 - 后端：Python + Flask
 - 前端：HTML + JavaScript
-- 数据存储：postgresql
+- 数据存储：PostgreSQL
+
+### 目标技术栈
+- 包管理器：pnpm
+- 构建工具：Vite
+- 框架：Next.js 13+ (App Router)
+- 样式：TailwindCSS
+- 图标：CDN icon
+- 数据库：PostgreSQL
+- 语言：TypeScript
+- ORM：Prisma
 
 ### 核心文件结构
 ```
-AI-Link-Navigator/
-├── app.py              # 主应用入口和路由控制
-├── models.py           # 数据模型和业务逻辑
-├── data.json           # 数据存储文件
-├── templates/
-│   ├── index.html     # 主页面
-│   ├── login.html     # 登录页面
-│   └── admin.html     # 管理页面
-└── docker/            # Docker 相关配置
+src/
+├── app/                 # Next.js 13+ App Router
+│   ├── api/            # API 路由
+│   ├── (auth)/        # 认证相关页面
+│   └── (dashboard)/   # 应用页面
+├── components/         # React 组件
+│   ├── ui/            # 通用UI组件
+│   └── features/      # 业务组件
+├── lib/               # 工具函数
+│   ├── prisma/        # 数据库客户端
+│   ├── auth/          # 认证相关
+│   └── utils/         # 通用工具
+├── hooks/             # 自定义 Hooks
+├── types/             # TypeScript 类型定义
+└── styles/            # 全局样式
 ```
 
-## 核心功能模块
+## 技术栈详细说明
 
-### 1. 用户认证系统
-- 用户注册
-- 用户登录
-- 会话管理
-- 权限控制
-
-### 2. 数据管理
-- 数据的 CRUD 操作
-- 数据验证
-- 数据持久化
-
-### 3. API 接口
-- RESTful API 设计
-- 错误处理
-- 响应格式化
-
-### 4. 前端界面
-- 响应式设计
-- 用户交互
-- 数据展示
-
-## 重构建议
-
-### 1. 后端技术选择
-
-#### Java 方案
-- 框架：Spring Boot
-- 数据库：MySQL/PostgreSQL
-- 认证：Spring Security
-- API文档：Swagger
-
-#### Node.js 方案
-- 框架：Express/NestJS
-- 数据库：MongoDB
-- 认证：Passport.js
-- API文档：Swagger/OpenAPI
-
-#### Go 方案
-- 框架：Gin/Echo
-- 数据库：PostgreSQL
-- 认证：JWT
-- API文档：Swagger
-
-### 2. 前端技术选择
-
-#### 方案一：React
-- UI框架：Ant Design/Material-UI
-- 状态管理：Redux/MobX
-- 路由：React Router
-- API调用：Axios
-
-#### 方案二：Vue
-- UI框架：Element Plus/Vuetify
-- 状态管理：Pinia/Vuex
-- 路由：Vue Router
-- API调用：Axios
-
-### 3. 数据库迁移
-建议从JSON文件迁移到关系型数据库或文档数据库：
-
-```sql
--- 用户表示例 (MySQL)
-CREATE TABLE users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    role VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 资源表示例
-CREATE TABLE resources (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    title VARCHAR(100) NOT NULL,
-    url VARCHAR(255) NOT NULL,
-    description TEXT,
-    category VARCHAR(50),
-    created_by INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users(id)
-);
+### 1. 核心依赖
+```json
+{
+  "dependencies": {
+    "next": "^13.x",
+    "react": "^18.x",
+    "react-dom": "^18.x",
+    "typescript": "^5.x",
+    "@prisma/client": "^5.x",
+    "tailwindcss": "^3.x",
+    "zustand": "^4.x",
+    "@tanstack/react-query": "^4.x",
+    "next-auth": "^4.x",
+    "axios": "^1.x"
+  },
+  "devDependencies": {
+    "@types/react": "^18.x",
+    "@types/node": "^18.x",
+    "prisma": "^5.x",
+    "@typescript-eslint/parser": "^5.x",
+    "@typescript-eslint/eslint-plugin": "^5.x",
+    "eslint": "^8.x",
+    "prettier": "^2.x"
+  }
+}
 ```
 
-### 4. API 设计
-
-#### RESTful API 端点示例
+### 2. TypeScript 配置
+```typescript
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
 ```
-# 用户管理
-POST   /api/auth/register     # 用户注册
-POST   /api/auth/login        # 用户登录
-GET    /api/auth/profile      # 获取用户信息
-PUT    /api/auth/profile      # 更新用户信息
 
-# 资源管理
-GET    /api/resources         # 获取资源列表
-POST   /api/resources         # 创建新资源
-GET    /api/resources/:id     # 获取单个资源
-PUT    /api/resources/:id     # 更新资源
-DELETE /api/resources/:id     # 删除资源
+### 3. Prisma 数据库模型
+```prisma
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
 
-# 管理功能
-GET    /api/admin/users       # 获取用户列表
-PUT    /api/admin/users/:id   # 更新用户状态
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+}
 ```
 
-### 5. 安全考虑
+### 4. API 路由实现
+```typescript
+// src/app/api/auth/[...nextauth]/route.ts
+import { NextAuth } from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import { PrismaAdapter } from '@next-auth/prisma-adapter'
+import { prisma } from '@/lib/prisma'
 
-1. 认证与授权
-- 实现 JWT 或 Session 认证
-- 实现基于角色的访问控制（RBAC）
-- 密码加密存储
+export const authOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    CredentialsProvider({
+      // 实现认证逻辑
+    })
+  ]
+}
 
-2. 数据安全
-- 输入验证和清理
-- SQL注入防护
-- XSS防护
-- CSRF防护
+const handler = NextAuth(authOptions)
+export { handler as GET, handler as POST }
+```
 
-3. API安全
-- 速率限制
-- 请求验证
-- HTTPS支持
+### 5. 状态管理
+```typescript
+// src/store/useStore.ts
+import create from 'zustand'
 
-### 6. 部署考虑
+interface StoreState {
+  count: number
+  increment: () => void
+}
 
-1. 容器化
+export const useStore = create<StoreState>((set) => ({
+  count: 0,
+  increment: () => set((state) => ({ count: state.count + 1 })),
+}))
+```
+
+### 6. 组件实现
+```typescript
+// src/components/ui/Button.tsx
+import { ButtonHTMLAttributes, ReactNode } from 'react'
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'outline'
+  size?: 'sm' | 'md' | 'lg'
+  children: ReactNode
+}
+
+export const Button = ({
+  variant = 'primary',
+  size = 'md',
+  children,
+  ...props
+}: ButtonProps) => {
+  return (
+    <button
+      className={`btn btn-${variant} btn-${size}`}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+```
+
+## 开发工具配置
+
+### 1. ESLint 配置
+```json
+// .eslintrc.json
+{
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-explicit-any": "warn"
+  }
+}
+```
+
+### 2. Prettier 配置
+```json
+// .prettierrc
+{
+  "semi": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5"
+}
+```
+
+### 3. VS Code 设置
+```json
+// .vscode/settings.json
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "typescript.tsdk": "node_modules/typescript/lib"
+}
+```
+
+## 部署配置
+
+### 1. Docker 配置
 ```dockerfile
-# 后端 Dockerfile 示例
-FROM node:16-alpine
+# Dockerfile
+FROM node:18-alpine AS base
+
+FROM base AS deps
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm
+RUN pnpm install
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN pnpm build
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV production
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
 ```
 
-2. CI/CD
-- 自动化测试
-- 自动化构建
-- 自动化部署
-
-## 测试策略
-
-1. 单元测试
-- 业务逻辑测试
-- 数据模型测试
-- API端点测试
-
-2. 集成测试
-- API集成测试
-- 数据库集成测试
-
-3. 端到端测试
-- 用户流程测试
-- 性能测试
-
-## 性能优化
-
-1. 后端优化
-- 数据库索引优化
-- 缓存策略
-- 异步处理
-
-2. 前端优化
-- 代码分割
-- 懒加载
-- 资源压缩
+### 2. 环境变量
+```env
+# .env.example
+DATABASE_URL="postgresql://user:password@localhost:5432/dbname"
+NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_URL="http://localhost:3000"
+```
 
 ## 迁移步骤
 
-1. 准备阶段
-- 分析现有代码和功能
-- 选择技术栈
-- 设计数据库架构
+1. 环境搭建
+```bash
+# 初始化项目
+pnpm create next-app --typescript
+cd your-project
 
-2. 开发阶段
-- 搭建基础框架
-- 实现核心功能
-- 编写测试用例
+# 安装依赖
+pnpm add @prisma/client next-auth @tanstack/react-query zustand
+pnpm add -D prisma typescript @types/react @types/node
 
-3. 数据迁移
-- 设计数据迁移脚本
-- 测试数据迁移
-- 执行实际迁移
+# 初始化 Prisma
+npx prisma init
+```
 
-4. 测试和优化
-- 功能测试
-- 性能测试
-- 安全测试
+2. 数据库迁移
+```bash
+# 创建迁移
+npx prisma migrate dev --name init
 
-5. 部署上线
-- 准备部署环境
-- 配置CI/CD
-- 灰度发布
+# 生成 Prisma Client
+npx prisma generate
+```
 
-## 注意事项
+3. 开发流程
+- 实现数据模型
+- 创建 API 路由
+- 开发前端组件
+- 实现状态管理
+- 添加认证逻辑
 
-1. 保持功能完整性
-- 确保所有现有功能都被正确迁移
-- 维护现有的API契约
-- 保持用户体验一致性
+4. 测试
+- 单元测试
+- 集成测试
+- E2E 测试
 
-2. 数据一致性
-- 确保数据迁移的准确性
-- 维护数据关系
-- 处理边界情况
+5. 部署
+- 构建 Docker 镜像
+- 配置 CI/CD
+- 部署到生产环境
 
-3. 性能监控
-- 设置性能基准
-- 监控系统指标
-- 及时处理性能问题
+## 性能优化
 
-4. 文档维护
-- 更新API文档
-- 维护开发文档
-- 记录重要决策
+1. 前端优化
+- 实现组件懒加载
+- 使用 Next.js Image 组件
+- 实现路由预加载
+- 使用静态生成 (SSG)
+
+2. 后端优化
+- 实现数据库索引
+- 添加缓存层
+- 优化 API 响应
+
+## 安全考虑
+
+1. 认证与授权
+- 使用 NextAuth.js
+- 实现 RBAC
+- 密码加密存储
+
+2. 数据安全
+- 输入验证
+- SQL 注入防护
+- XSS 防护
+- CSRF 防护
+
+## 监控和日志
+
+1. 错误监控
+- 集成 Sentry
+- 实现错误边界
+- 添加性能监控
+
+2. 日志记录
+- 实现请求日志
+- 记录错误日志
+- 添加审计日志
 
 ## 时间估算
 
-1. 准备阶段：1-2周
-2. 核心开发：4-6周
-3. 数据迁移：1-2周
-4. 测试优化：2-3周
-5. 部署上线：1周
+1. 环境搭建：2-3天
+2. 数据库迁移：3-4天
+3. 核心功能开发：2-3周
+4. 测试和优化：1-2周
+5. 部署上线：2-3天
 
-总计：9-14周（根据团队规模和经验可能有所变化） 
+总计：4-6周（根据团队规模和经验可能有所变化） 
