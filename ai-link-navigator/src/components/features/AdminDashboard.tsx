@@ -1,27 +1,48 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LinksManagement } from './LinksManagement'
 import { UsersManagement } from './UsersManagement'
 import { SettingsManagement } from './SettingsManagement'
+import { SiteSettings } from '@/types'
 
 type TabType = 'links' | 'users' | 'settings'
+
+// 客户端获取设置的函数
+async function getSettings(): Promise<SiteSettings> {
+  try {
+    const response = await fetch('/api/settings')
+    const data = await response.json()
+    return data.data || {}
+  } catch (error) {
+    console.error('Failed to fetch settings:', error)
+    return {}
+  }
+}
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('links')
   const [searchQuery, setSearchQuery] = useState('')
+  const [settings, setSettings] = useState<SiteSettings>({})
+
+  // 在客户端加载设置
+  useEffect(() => {
+    getSettings().then(setSettings)
+  }, [])
 
   const tabs = [
     { id: 'links' as TabType, label: '链接管理' },
     { id: 'users' as TabType, label: '用户管理' },
-    { id: 'settings' as TabType, label: '网站设置' },
+    { id: 'settings' as TabType, label: '网站文字设置' },
   ]
 
   return (
     <div className="max-w-6xl mx-auto p-6 md:p-8">
       <header className="mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold">AI导航管理后台</h1>
+          <h1 className="text-3xl font-bold">
+            {settings.admin_title || 'AI导航管理后台'}
+          </h1>
           <div className="flex items-center space-x-4">
             <a
               href="/"
@@ -33,7 +54,7 @@ export function AdminDashboard() {
                 <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                 <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
               </svg>
-              预览网站
+              {settings.admin_preview_button || '预览网站'}
             </a>
             <a
               href="/api/auth/signout"
@@ -42,7 +63,7 @@ export function AdminDashboard() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
               </svg>
-              退出登录
+              {settings.admin_logout_button || '退出登录'}
             </a>
           </div>
         </div>

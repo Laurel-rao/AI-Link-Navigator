@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "tsx scripts/seed-data.ts"
+    "db:seed": "tsx scripts/seed-data.ts",
+    "db:seed-text": "tsx scripts/seed-text-settings.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.8.2",

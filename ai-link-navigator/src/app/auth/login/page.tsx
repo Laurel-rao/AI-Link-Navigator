@@ -2,6 +2,33 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth/config'
 import { LoginForm } from '@/components/features/LoginForm'
+import { prisma } from '@/lib/prisma/client'
+import { SiteSettings, Setting } from '@/types'
+
+async function getSiteSettings(): Promise<SiteSettings> {
+  try {
+    const settings = await prisma.setting.findMany()
+    
+    // 转换为键值对格式
+    const settingsObject: SiteSettings = {}
+    settings.forEach((setting: Setting) => {
+      settingsObject[setting.key as keyof SiteSettings] = setting.value || undefined
+    })
+
+    return settingsObject
+  } catch (error) {
+    console.error('Error fetching site settings:', error)
+    // 返回默认设置
+    return {
+      login_title: 'AI导航系统',
+      login_subtitle: '智能资源导航平台',
+      login_dev_notice_title: '开发环境 - 测试账号',
+      login_dev_admin_label: '管理员',
+      login_dev_user_label: '用户',
+      login_copyright: '© 2024 AI-Link-Navigator. 现代化智能导航平台'
+    }
+  }
+}
 
 export default async function LoginPage() {
   const session = await getServerSession(authOptions)
@@ -9,6 +36,8 @@ export default async function LoginPage() {
   if (session) {
     redirect('/')
   }
+
+  const settings = await getSiteSettings()
 
   // 只在开发环境显示测试账号信息
   const isDevelopment = process.env.NODE_ENV === 'development'
@@ -33,11 +62,13 @@ export default async function LoginPage() {
             </div>
             
             <h1 className="text-3xl font-bold mb-2">
-              <span className="gradient-text-blue neon-text">AI导航系统</span>
+              <span className="gradient-text-blue soft-glow">
+                {settings.login_title || 'AI导航系统'}
+              </span>
             </h1>
             
             <p className="text-slate-400 text-sm">
-              智能资源导航平台
+              {settings.login_subtitle || '智能资源导航平台'}
             </p>
             
             {/* 装饰线 */}
@@ -45,7 +76,7 @@ export default async function LoginPage() {
           </div>
           
           {/* 登录表单 */}
-          <LoginForm />
+          <LoginForm settings={settings} />
           
           {/* 开发环境测试账号提示 */}
           {isDevelopment && (
@@ -55,15 +86,21 @@ export default async function LoginPage() {
                   <svg className="w-4 h-4 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                   </svg>
-                  <p className="text-xs text-yellow-400 font-medium">开发环境 - 测试账号</p>
+                  <p className="text-xs text-yellow-400 font-medium">
+                    {settings.login_dev_notice_title || '开发环境 - 测试账号'}
+                  </p>
                 </div>
                 <div className="grid grid-cols-1 gap-2 text-xs">
                   <div className="glassmorphism rounded-lg p-2">
-                    <span className="text-slate-400">管理员：</span>
+                    <span className="text-slate-400">
+                      {settings.login_dev_admin_label || '管理员'}：
+                    </span>
                     <span className="text-blue-400 font-mono">admin / admin123</span>
                   </div>
                   <div className="glassmorphism rounded-lg p-2">
-                    <span className="text-slate-400">用户：</span>
+                    <span className="text-slate-400">
+                      {settings.login_dev_user_label || '用户'}：
+                    </span>
                     <span className="text-purple-400 font-mono">user / user123</span>
                   </div>
                 </div>
@@ -75,7 +112,7 @@ export default async function LoginPage() {
         {/* 版权信息 */}
         <div className="text-center mt-6">
           <p className="text-xs text-slate-500">
-            © 2024 AI-Link-Navigator. 现代化智能导航平台
+            {settings.login_copyright || '© 2024 AI-Link-Navigator. 现代化智能导航平台'}
           </p>
         </div>
       </div>

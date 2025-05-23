@@ -76,6 +76,13 @@
     -webkit-text-fill-color: transparent;
   }
   
+  .gradient-text-red {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
   .floating-animation {
     animation: floating 6s ease-in-out infinite;
   }
@@ -86,6 +93,21 @@
     }
     50% {
       transform: translateY(-10px);
+    }
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
   
@@ -195,10 +217,24 @@
   
   .neon-text {
     text-shadow: 
+      0 0 2px currentColor,
       0 0 5px currentColor,
-      0 0 10px currentColor,
-      0 0 15px currentColor,
-      0 0 20px currentColor;
+      0 0 8px rgba(79, 172, 254, 0.6);
+    filter: drop-shadow(0 0 3px rgba(79, 172, 254, 0.3));
+  }
+  
+  .soft-glow {
+    text-shadow: 
+      0 0 3px currentColor,
+      0 0 6px rgba(79, 172, 254, 0.4);
+  }
+  
+  .strong-glow {
+    text-shadow: 
+      0 0 3px currentColor,
+      0 0 8px currentColor,
+      0 0 12px rgba(79, 172, 254, 0.7),
+      0 0 16px rgba(79, 172, 254, 0.4);
   }
   
   .tech-grid {
