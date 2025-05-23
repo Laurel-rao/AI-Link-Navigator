@@ -10,6 +10,9 @@ export default async function LoginPage() {
     redirect('/')
   }
 
+  // 只在开发环境显示测试账号信息
+  const isDevelopment = process.env.NODE_ENV === 'development'
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
       {/* 背景装饰元素 */}
@@ -44,22 +47,29 @@ export default async function LoginPage() {
           {/* 登录表单 */}
           <LoginForm />
           
-          {/* 底部提示 */}
-          <div className="mt-8 pt-6 border-t border-slate-700/50">
-            <div className="text-center">
-              <p className="text-xs text-slate-500 mb-3">默认测试账号</p>
-              <div className="grid grid-cols-1 gap-2 text-xs">
-                <div className="glassmorphism rounded-lg p-2">
-                  <span className="text-slate-400">管理员：</span>
-                  <span className="text-blue-400 font-mono">admin / admin123</span>
+          {/* 开发环境测试账号提示 */}
+          {isDevelopment && (
+            <div className="mt-8 pt-6 border-t border-slate-700/50">
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-3">
+                  <svg className="w-4 h-4 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <p className="text-xs text-yellow-400 font-medium">开发环境 - 测试账号</p>
                 </div>
-                <div className="glassmorphism rounded-lg p-2">
-                  <span className="text-slate-400">用户：</span>
-                  <span className="text-purple-400 font-mono">user / user123</span>
+                <div className="grid grid-cols-1 gap-2 text-xs">
+                  <div className="glassmorphism rounded-lg p-2">
+                    <span className="text-slate-400">管理员：</span>
+                    <span className="text-blue-400 font-mono">admin / admin123</span>
+                  </div>
+                  <div className="glassmorphism rounded-lg p-2">
+                    <span className="text-slate-400">用户：</span>
+                    <span className="text-purple-400 font-mono">user / user123</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
         
         {/* 版权信息 */}
