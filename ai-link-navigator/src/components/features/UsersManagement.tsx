@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '@/lib/utils/api'
 import { User, CreateUserRequest, UpdateUserRequest, Role } from '@/types'
+import { HighlightText } from '@/components/ui/HighlightText'
 
 interface UsersManagementProps {
   searchQuery: string
@@ -179,13 +180,20 @@ export function UsersManagement({ searchQuery }: UsersManagementProps) {
 
       <div>
         <h3 className="text-lg font-medium mb-3 text-blue-400">现有用户列表</h3>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {filteredUsers.map((user) => (
             <div key={user.id} className="p-4 bg-slate-700 rounded-lg">
               {editingUser === user.username ? (
                 // 编辑用户表单
                 <div className="p-3 bg-slate-600 rounded">
-                  <h4 className="text-md font-medium mb-3 text-blue-400">编辑用户: {user.username}</h4>
+                  <h4 className="text-lg font-medium mb-3 text-blue-400">
+                    编辑用户: 
+                    <HighlightText 
+                      text={user.username} 
+                      searchQuery={searchQuery}
+                      className="ml-2 text-lg font-medium" 
+                    />
+                  </h4>
                   <form onSubmit={handleUpdateUser} className="space-y-4">
                     <div>
                       <label className="block text-sm text-slate-300 mb-2">角色</label>
@@ -253,23 +261,33 @@ export function UsersManagement({ searchQuery }: UsersManagementProps) {
                   )}
                 </div>
               ) : (
-                // 显示用户信息
+                // 显示用户信息 - 使用高亮和更大字体
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-300" viewBox="0 0 20 20" fill="currentColor">
+                    <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-300" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-medium text-white">{user.username}</h4>
+                      <h4 className="font-bold text-white text-lg">
+                        <HighlightText 
+                          text={user.username} 
+                          searchQuery={searchQuery}
+                          className="text-lg font-bold" 
+                        />
+                      </h4>
                       <div className="flex items-center space-x-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                           user.role === 'ADMIN' 
                             ? 'bg-purple-100 text-purple-800' 
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {user.role === 'ADMIN' ? '管理员' : '普通用户'}
+                          <HighlightText 
+                            text={user.role === 'ADMIN' ? '管理员' : '普通用户'} 
+                            searchQuery={searchQuery}
+                            className="text-sm font-medium" 
+                          />
                         </span>
                         <span className="text-slate-400 text-sm">
                           创建于 {new Date(user.createdAt).toLocaleDateString()}
@@ -306,8 +324,18 @@ export function UsersManagement({ searchQuery }: UsersManagementProps) {
         </div>
         
         {filteredUsers.length === 0 && (
-          <p className="text-slate-400 text-center py-4">
-            {searchQuery ? '未找到匹配的用户。' : '暂无用户数据。'}
+          <p className="text-slate-400 text-center py-4 text-lg">
+            {searchQuery ? (
+              <>
+                未找到匹配 "
+                <span className="bg-yellow-300 text-yellow-900 px-1 rounded font-semibold">
+                  {searchQuery}
+                </span>
+                " 的用户。
+              </>
+            ) : (
+              '暂无用户数据。'
+            )}
           </p>
         )}
       </div>

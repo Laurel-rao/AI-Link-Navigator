@@ -3,7 +3,33 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { groupApi, linkApi } from '@/lib/utils/api'
-import { GroupWithLinks, CreateGroupRequest, CreateLinkRequest, UpdateGroupRequest, UpdateLinkRequest, Link } from '@/types'
+import { CreateGroupRequest, CreateLinkRequest, UpdateGroupRequest, UpdateLinkRequest } from '@/types'
+import { HighlightText } from '@/components/ui/HighlightText'
+
+// 定义类型
+interface Group {
+  id: string
+  title: string
+  description?: string | null
+  order: number
+  createdAt: string
+  updatedAt: string
+}
+
+interface Link {
+  id: string
+  title: string
+  url: string
+  description?: string | null
+  order: number
+  groupId: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface GroupWithLinks extends Group {
+  links: Link[]
+}
 
 interface LinksManagementProps {
   searchQuery: string
@@ -237,50 +263,50 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
             {editingGroup === group.id ? (
               // 编辑分组表单
               <div className="mb-4 p-3 bg-slate-600 rounded">
-                <h4 className="text-md font-medium mb-3">编辑分组</h4>
+                <h4 className="text-lg font-medium mb-3">编辑分组</h4>
                 <form onSubmit={handleUpdateGroup} className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-slate-300 mb-1">标题</label>
+                      <label className="block text-sm text-slate-300 mb-1">标题</label>
                       <input
                         type="text"
                         value={editGroup.title}
                         onChange={(e) => setEditGroup({ ...editGroup, title: e.target.value })}
-                        className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-300 mb-1">排序</label>
+                      <label className="block text-sm text-slate-300 mb-1">排序</label>
                       <input
                         type="number"
                         value={editGroup.order}
                         onChange={(e) => setEditGroup({ ...editGroup, order: parseInt(e.target.value) })}
-                        className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-300 mb-1">描述</label>
+                    <label className="block text-sm text-slate-300 mb-1">描述</label>
                     <input
                       type="text"
                       value={editGroup.description}
                       onChange={(e) => setEditGroup({ ...editGroup, description: e.target.value })}
-                      className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                      className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                     />
                   </div>
                   <div className="flex space-x-2">
                     <button
                       type="submit"
                       disabled={updateGroupMutation.isPending}
-                      className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-xs"
+                      className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-sm"
                     >
                       {updateGroupMutation.isPending ? '保存中...' : '保存'}
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditingGroup(null)}
-                      className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-xs"
+                      className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-sm"
                     >
                       取消
                     </button>
@@ -288,12 +314,24 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
                 </form>
               </div>
             ) : (
-              // 显示分组信息
+              // 显示分组信息 - 使用高亮和更大字体
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold">{group.title}</h3>
+                  <h3 className="text-xl font-bold">
+                    <HighlightText 
+                      text={group.title} 
+                      searchQuery={searchQuery}
+                      className="text-xl font-bold" 
+                    />
+                  </h3>
                   {group.description && (
-                    <p className="text-slate-400 text-sm">{group.description}</p>
+                    <p className="text-slate-400 text-base mt-1">
+                      <HighlightText 
+                        text={group.description} 
+                        searchQuery={searchQuery}
+                        className="text-base" 
+                      />
+                    </p>
                   )}
                 </div>
                 <div className="flex space-x-2">
@@ -324,61 +362,61 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
 
             {showAddLinkForm === group.id && (
               <div className="mb-4 p-3 bg-slate-600 rounded">
-                <h4 className="text-md font-medium mb-3">添加新链接</h4>
+                <h4 className="text-lg font-medium mb-3">添加新链接</h4>
                 <form onSubmit={handleCreateLink} className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-slate-300 mb-1">链接ID</label>
+                      <label className="block text-sm text-slate-300 mb-1">链接ID</label>
                       <input
                         type="text"
                         value={newLink.id}
                         onChange={(e) => setNewLink({ ...newLink, id: e.target.value })}
-                        className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-300 mb-1">标题</label>
+                      <label className="block text-sm text-slate-300 mb-1">标题</label>
                       <input
                         type="text"
                         value={newLink.title}
                         onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
-                        className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                         required
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-300 mb-1">URL</label>
+                    <label className="block text-sm text-slate-300 mb-1">URL</label>
                     <input
                       type="url"
                       value={newLink.url}
                       onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
-                      className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                      className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-300 mb-1">描述</label>
+                    <label className="block text-sm text-slate-300 mb-1">描述</label>
                     <input
                       type="text"
                       value={newLink.description}
                       onChange={(e) => setNewLink({ ...newLink, description: e.target.value })}
-                      className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                      className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                     />
                   </div>
                   <div className="flex space-x-2">
                     <button
                       type="submit"
                       disabled={createLinkMutation.isPending}
-                      className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-xs"
+                      className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-sm"
                     >
                       {createLinkMutation.isPending ? '创建中...' : '创建链接'}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowAddLinkForm(null)}
-                      className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-xs"
+                      className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-sm"
                     >
                       取消
                     </button>
@@ -387,66 +425,66 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {group.links.map((link) => (
-                <div key={link.id} className="p-2 bg-slate-700 rounded">
+                <div key={link.id} className="p-3 bg-slate-700 rounded">
                   {editingLink === link.id ? (
                     // 编辑链接表单
                     <div className="p-3 bg-slate-600 rounded">
-                      <h5 className="text-sm font-medium mb-3">编辑链接</h5>
+                      <h5 className="text-base font-medium mb-3">编辑链接</h5>
                       <form onSubmit={handleUpdateLink} className="space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-slate-300 mb-1">标题</label>
+                            <label className="block text-sm text-slate-300 mb-1">标题</label>
                             <input
                               type="text"
                               value={editLink.title}
                               onChange={(e) => setEditLink({ ...editLink, title: e.target.value })}
-                              className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                              className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                               required
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-slate-300 mb-1">排序</label>
+                            <label className="block text-sm text-slate-300 mb-1">排序</label>
                             <input
                               type="number"
                               value={editLink.order}
                               onChange={(e) => setEditLink({ ...editLink, order: parseInt(e.target.value) })}
-                              className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                              className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-300 mb-1">URL</label>
+                          <label className="block text-sm text-slate-300 mb-1">URL</label>
                           <input
                             type="url"
                             value={editLink.url}
                             onChange={(e) => setEditLink({ ...editLink, url: e.target.value })}
-                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-300 mb-1">描述</label>
+                          <label className="block text-sm text-slate-300 mb-1">描述</label>
                           <input
                             type="text"
                             value={editLink.description}
                             onChange={(e) => setEditLink({ ...editLink, description: e.target.value })}
-                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white"
                           />
                         </div>
                         <div className="flex space-x-2">
                           <button
                             type="submit"
                             disabled={updateLinkMutation.isPending}
-                            className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-xs"
+                            className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-sm"
                           >
                             {updateLinkMutation.isPending ? '保存中...' : '保存'}
                           </button>
                           <button
                             type="button"
                             onClick={() => setEditingLink(null)}
-                            className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-xs"
+                            className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-sm"
                           >
                             取消
                           </button>
@@ -454,7 +492,7 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
                       </form>
                     </div>
                   ) : (
-                    // 显示链接信息
+                    // 显示链接信息 - 使用高亮和更大字体
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
@@ -462,16 +500,26 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 font-medium"
+                            className="text-blue-400 hover:text-blue-300 font-semibold text-base"
                           >
-                            {link.title}
+                            <HighlightText 
+                              text={link.title} 
+                              searchQuery={searchQuery}
+                              className="text-base font-semibold" 
+                            />
                           </a>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
                         </div>
                         {link.description && (
-                          <p className="text-slate-400 text-xs mt-1">{link.description}</p>
+                          <p className="text-slate-400 text-sm mt-1">
+                            <HighlightText 
+                              text={link.description} 
+                              searchQuery={searchQuery}
+                              className="text-sm" 
+                            />
+                          </p>
                         )}
                       </div>
                       <div className="flex space-x-1">

@@ -1,7 +1,31 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/config'
+import { prisma } from '@/lib/prisma/client'
 import { GroupsDisplay } from '@/components/features/GroupsDisplay'
+import { SiteSettings, Setting } from '@/types'
+
+async function getSiteSettings(): Promise<SiteSettings> {
+  try {
+    const settings = await prisma.setting.findMany()
+    
+    // 转换为键值对格式
+    const settingsObject: SiteSettings = {}
+    settings.forEach((setting: Setting) => {
+      settingsObject[setting.key as keyof SiteSettings] = setting.value || undefined
+    })
+
+    return settingsObject
+  } catch (error) {
+    console.error('Error fetching site settings:', error)
+    // 返回默认设置
+    return {
+      site_title: 'AI-Link-Navigator',
+      site_heading: 'AI资源导航',
+      site_subheading: '前沿AI工具与资源的精选集合'
+    }
+  }
+}
 
 export default async function Home() {
   const session = await getServerSession(authOptions)
@@ -9,6 +33,8 @@ export default async function Home() {
   if (!session) {
     redirect('/auth/login')
   }
+
+  const settings = await getSiteSettings()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
@@ -37,10 +63,10 @@ export default async function Home() {
             </a>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mb-4">
-            AI资源导航
+            {settings.site_heading || 'AI资源导航'}
           </h1>
           <p className="text-slate-300 text-lg md:text-xl max-w-3xl mx-auto">
-            前沿AI工具与资源的精选集合
+            {settings.site_subheading || '前沿AI工具与资源的精选集合'}
           </p>
         </header>
 
