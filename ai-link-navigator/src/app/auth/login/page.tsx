@@ -11,12 +11,63 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center text-white p-6">
-      <div className="bg-slate-800/70 backdrop-blur-md p-8 md:p-10 rounded-2xl shadow-2xl w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-8">
-          AI导航 - 系统登录
-        </h1>
-        <LoginForm />
+    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+      {/* 背景装饰元素 */}
+      <div className="absolute inset-0 tech-grid pointer-events-none"></div>
+      <div className="absolute top-20 left-20 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl floating-animation"></div>
+      <div className="absolute bottom-20 right-20 w-32 h-32 bg-purple-500/10 rounded-full blur-xl floating-animation" style={{animationDelay: '2s'}}></div>
+      <div className="absolute top-1/2 left-10 w-24 h-24 bg-cyan-500/10 rounded-full blur-lg floating-animation" style={{animationDelay: '4s'}}></div>
+      
+      {/* 主要内容 */}
+      <div className="relative z-10 w-full max-w-md">
+        <div className="glassmorphism-card rounded-3xl p-10 cyber-border">
+          {/* Logo区域 */}
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 glassmorphism-card rounded-2xl flex items-center justify-center mx-auto mb-6 pulse-glow">
+              <svg className="w-10 h-10 gradient-text-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            
+            <h1 className="text-3xl font-bold mb-2">
+              <span className="gradient-text-blue neon-text">AI导航系统</span>
+            </h1>
+            
+            <p className="text-slate-400 text-sm">
+              智能资源导航平台
+            </p>
+            
+            {/* 装饰线 */}
+            <div className="w-20 h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent mx-auto mt-4"></div>
+          </div>
+          
+          {/* 登录表单 */}
+          <LoginForm />
+          
+          {/* 底部提示 */}
+          <div className="mt-8 pt-6 border-t border-slate-700/50">
+            <div className="text-center">
+              <p className="text-xs text-slate-500 mb-3">默认测试账号</p>
+              <div className="grid grid-cols-1 gap-2 text-xs">
+                <div className="glassmorphism rounded-lg p-2">
+                  <span className="text-slate-400">管理员：</span>
+                  <span className="text-blue-400 font-mono">admin / admin123</span>
+                </div>
+                <div className="glassmorphism rounded-lg p-2">
+                  <span className="text-slate-400">用户：</span>
+                  <span className="text-purple-400 font-mono">user / user123</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* 版权信息 */}
+        <div className="text-center mt-6">
+          <p className="text-xs text-slate-500">
+            © 2024 AI-Link-Navigator. 现代化智能导航平台
+          </p>
+        </div>
       </div>
     </div>
   )
