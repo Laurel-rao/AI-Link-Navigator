@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { groupApi, linkApi } from '@/lib/utils/api'
-import { GroupWithLinks, CreateGroupRequest, CreateLinkRequest } from '@/types'
+import { GroupWithLinks, CreateGroupRequest, CreateLinkRequest, UpdateGroupRequest, UpdateLinkRequest, Link } from '@/types'
 
 interface LinksManagementProps {
   searchQuery: string
@@ -12,6 +12,8 @@ interface LinksManagementProps {
 export function LinksManagement({ searchQuery }: LinksManagementProps) {
   const [showAddGroupForm, setShowAddGroupForm] = useState(false)
   const [showAddLinkForm, setShowAddLinkForm] = useState<string | null>(null)
+  const [editingGroup, setEditingGroup] = useState<string | null>(null)
+  const [editingLink, setEditingLink] = useState<string | null>(null)
   const [newGroup, setNewGroup] = useState<CreateGroupRequest>({
     id: '',
     title: '',
@@ -25,6 +27,17 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
     description: '',
     order: 0,
     groupId: ''
+  })
+  const [editGroup, setEditGroup] = useState<UpdateGroupRequest>({
+    title: '',
+    description: '',
+    order: 0
+  })
+  const [editLink, setEditLink] = useState<UpdateLinkRequest>({
+    title: '',
+    url: '',
+    description: '',
+    order: 0
   })
 
   const queryClient = useQueryClient()
@@ -46,12 +59,30 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
     }
   })
 
+  const updateGroupMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: UpdateGroupRequest }) => 
+      groupApi.updateGroup(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] })
+      setEditingGroup(null)
+    }
+  })
+
   const createLinkMutation = useMutation({
     mutationFn: linkApi.createLink,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] })
       setShowAddLinkForm(null)
       setNewLink({ id: '', title: '', url: '', description: '', order: 0, groupId: '' })
+    }
+  })
+
+  const updateLinkMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: UpdateLinkRequest }) => 
+      linkApi.updateLink(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] })
+      setEditingLink(null)
     }
   })
 
@@ -74,9 +105,42 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
     createGroupMutation.mutate(newGroup)
   }
 
+  const handleUpdateGroup = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (editingGroup) {
+      updateGroupMutation.mutate({ id: editingGroup, data: editGroup })
+    }
+  }
+
   const handleCreateLink = (e: React.FormEvent) => {
     e.preventDefault()
     createLinkMutation.mutate(newLink)
+  }
+
+  const handleUpdateLink = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (editingLink) {
+      updateLinkMutation.mutate({ id: editingLink, data: editLink })
+    }
+  }
+
+  const startEditGroup = (group: GroupWithLinks) => {
+    setEditingGroup(group.id)
+    setEditGroup({
+      title: group.title,
+      description: group.description || '',
+      order: group.order
+    })
+  }
+
+  const startEditLink = (link: Link) => {
+    setEditingLink(link.id)
+    setEditLink({
+      title: link.title,
+      url: link.url,
+      description: link.description || '',
+      order: link.order
+    })
   }
 
   const filteredGroups = groups.filter(group =>
@@ -170,31 +234,93 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
       <div className="space-y-6">
         {filteredGroups.map((group) => (
           <div key={group.id} className="border border-slate-700 rounded-lg p-4">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">{group.title}</h3>
-                {group.description && (
-                  <p className="text-slate-400 text-sm">{group.description}</p>
-                )}
+            {editingGroup === group.id ? (
+              // 编辑分组表单
+              <div className="mb-4 p-3 bg-slate-600 rounded">
+                <h4 className="text-md font-medium mb-3">编辑分组</h4>
+                <form onSubmit={handleUpdateGroup} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-slate-300 mb-1">标题</label>
+                      <input
+                        type="text"
+                        value={editGroup.title}
+                        onChange={(e) => setEditGroup({ ...editGroup, title: e.target.value })}
+                        className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-300 mb-1">排序</label>
+                      <input
+                        type="number"
+                        value={editGroup.order}
+                        onChange={(e) => setEditGroup({ ...editGroup, order: parseInt(e.target.value) })}
+                        className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-300 mb-1">描述</label>
+                    <input
+                      type="text"
+                      value={editGroup.description}
+                      onChange={(e) => setEditGroup({ ...editGroup, description: e.target.value })}
+                      className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                    />
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      type="submit"
+                      disabled={updateGroupMutation.isPending}
+                      className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-xs"
+                    >
+                      {updateGroupMutation.isPending ? '保存中...' : '保存'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingGroup(null)}
+                      className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-xs"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </form>
               </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => {
-                    setNewLink({ ...newLink, groupId: group.id })
-                    setShowAddLinkForm(group.id)
-                  }}
-                  className="bg-green-500 hover:bg-green-600 px-2 py-1 rounded text-xs"
-                >
-                  添加链接
-                </button>
-                <button
-                  onClick={() => deleteGroupMutation.mutate(group.id)}
-                  className="bg-red-500 hover:bg-red-600 px-2 py-1 rounded text-xs"
-                >
-                  删除分组
-                </button>
+            ) : (
+              // 显示分组信息
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">{group.title}</h3>
+                  {group.description && (
+                    <p className="text-slate-400 text-sm">{group.description}</p>
+                  )}
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => startEditGroup(group)}
+                    className="bg-yellow-500 hover:bg-yellow-600 px-2 py-1 rounded text-xs"
+                  >
+                    编辑分组
+                  </button>
+                  <button
+                    onClick={() => {
+                      setNewLink({ ...newLink, groupId: group.id })
+                      setShowAddLinkForm(group.id)
+                    }}
+                    className="bg-green-500 hover:bg-green-600 px-2 py-1 rounded text-xs"
+                  >
+                    添加链接
+                  </button>
+                  <button
+                    onClick={() => deleteGroupMutation.mutate(group.id)}
+                    className="bg-red-500 hover:bg-red-600 px-2 py-1 rounded text-xs"
+                  >
+                    删除分组
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {showAddLinkForm === group.id && (
               <div className="mb-4 p-3 bg-slate-600 rounded">
@@ -263,31 +389,107 @@ export function LinksManagement({ searchQuery }: LinksManagementProps) {
 
             <div className="space-y-2">
               {group.links.map((link) => (
-                <div key={link.id} className="flex items-center justify-between p-2 bg-slate-700 rounded">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 font-medium"
-                      >
-                        {link.title}
-                      </a>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
+                <div key={link.id} className="p-2 bg-slate-700 rounded">
+                  {editingLink === link.id ? (
+                    // 编辑链接表单
+                    <div className="p-3 bg-slate-600 rounded">
+                      <h5 className="text-sm font-medium mb-3">编辑链接</h5>
+                      <form onSubmit={handleUpdateLink} className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs text-slate-300 mb-1">标题</label>
+                            <input
+                              type="text"
+                              value={editLink.title}
+                              onChange={(e) => setEditLink({ ...editLink, title: e.target.value })}
+                              className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-slate-300 mb-1">排序</label>
+                            <input
+                              type="number"
+                              value={editLink.order}
+                              onChange={(e) => setEditLink({ ...editLink, order: parseInt(e.target.value) })}
+                              className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-300 mb-1">URL</label>
+                          <input
+                            type="url"
+                            value={editLink.url}
+                            onChange={(e) => setEditLink({ ...editLink, url: e.target.value })}
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-300 mb-1">描述</label>
+                          <input
+                            type="text"
+                            value={editLink.description}
+                            onChange={(e) => setEditLink({ ...editLink, description: e.target.value })}
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            type="submit"
+                            disabled={updateLinkMutation.isPending}
+                            className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-xs"
+                          >
+                            {updateLinkMutation.isPending ? '保存中...' : '保存'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingLink(null)}
+                            className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-xs"
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </form>
                     </div>
-                    {link.description && (
-                      <p className="text-slate-400 text-xs mt-1">{link.description}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => deleteLinkMutation.mutate(link.id)}
-                    className="bg-red-500 hover:bg-red-600 px-2 py-1 rounded text-xs ml-2"
-                  >
-                    删除
-                  </button>
+                  ) : (
+                    // 显示链接信息
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 font-medium"
+                          >
+                            {link.title}
+                          </a>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </div>
+                        {link.description && (
+                          <p className="text-slate-400 text-xs mt-1">{link.description}</p>
+                        )}
+                      </div>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => startEditLink(link)}
+                          className="bg-yellow-500 hover:bg-yellow-600 px-2 py-1 rounded text-xs"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          onClick={() => deleteLinkMutation.mutate(link.id)}
+                          className="bg-red-500 hover:bg-red-600 px-2 py-1 rounded text-xs"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
